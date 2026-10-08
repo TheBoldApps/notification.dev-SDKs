@@ -1,0 +1,4 @@
+#include "Generated.xcconfig"
+
+// NotificationCore ships an ARM64 simulator slice. Override Flutter's generated exclusions.
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = $(inherited) x86_64

@@ -1,0 +1,1831 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "notification.dev Native SDK API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/sdk/installations": {
+      "post": {
+        "operationId": "registerInstallation",
+        "tags": [
+          "Native SDK"
+        ],
+        "description": "Creates an anonymous subscriber and installation. Matching registration secrets allow safe credential recovery.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "title": "RegistrationInput",
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "$ref": "#/components/schemas/CommonId"
+                  },
+                  "installationId": {
+                    "$ref": "#/components/schemas/CommonId"
+                  },
+                  "registrationSecret": {
+                    "minLength": 32,
+                    "maxLength": 255,
+                    "writeOnly": true,
+                    "type": "string"
+                  },
+                  "platform": {
+                    "$ref": "#/components/schemas/SubscribersPlatform"
+                  },
+                  "sdkVersion": {
+                    "$ref": "#/components/schemas/CommonText"
+                  },
+                  "metadata": {
+                    "$ref": "#/components/schemas/SubscribersInstallationMetadata"
+                  }
+                },
+                "required": [
+                  "projectId",
+                  "installationId",
+                  "registrationSecret",
+                  "platform",
+                  "sdkVersion",
+                  "metadata"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true
+          }
+        ],
+        "security": [],
+        "x-permission": null,
+        "x-roles": [],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "title": "Registration",
+                  "type": "object",
+                  "properties": {
+                    "installationCredential": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "$ref": "#/components/schemas/ServerState"
+                    }
+                  },
+                  "required": [
+                    "installationCredential",
+                    "state"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sdk/installations/{installationId}": {
+      "get": {
+        "operationId": "getSdkState",
+        "tags": [
+          "Native SDK"
+        ],
+        "description": "Installation-scoped operation. External IDs are unverified client assertions in v1.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/CommonId"
+            },
+            "in": "path",
+            "name": "installationId",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "installationCredential": []
+          }
+        ],
+        "x-permission": null,
+        "x-roles": [],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateInstallationMetadata",
+        "tags": [
+          "Native SDK"
+        ],
+        "description": "Installation-scoped operation. External IDs are unverified client assertions in v1.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "title": "MetadataUpdate",
+                "type": "object",
+                "properties": {
+                  "associationId": {
+                    "$ref": "#/components/schemas/CommonId"
+                  },
+                  "metadata": {
+                    "$ref": "#/components/schemas/SubscribersInstallationMetadata"
+                  }
+                },
+                "required": [
+                  "associationId",
+                  "metadata"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/CommonId"
+            },
+            "in": "path",
+            "name": "installationId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "installationCredential": []
+          }
+        ],
+        "x-permission": null,
+        "x-roles": [],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sdk/installations/{installationId}/login": {
+      "post": {
+        "operationId": "linkInstallationIdentity",
+        "tags": [
+          "Native SDK"
+        ],
+        "description": "Installation-scoped operation. External IDs are unverified client assertions in v1.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "title": "LoginInput",
+                "type": "object",
+                "properties": {
+                  "associationId": {
+                    "$ref": "#/components/schemas/CommonId"
+                  },
+                  "externalId": {
+                    "$ref": "#/components/schemas/CommonText"
+                  }
+                },
+                "required": [
+                  "associationId",
+                  "externalId"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/CommonId"
+            },
+            "in": "path",
+            "name": "installationId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "installationCredential": []
+          }
+        ],
+        "x-permission": null,
+        "x-roles": [],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sdk/installations/{installationId}/logout": {
+      "post": {
+        "operationId": "detachInstallationIdentity",
+        "tags": [
+          "Native SDK"
+        ],
+        "description": "Installation-scoped operation. External IDs are unverified client assertions in v1.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "title": "LogoutInput",
+                "type": "object",
+                "properties": {
+                  "associationId": {
+                    "$ref": "#/components/schemas/CommonId"
+                  }
+                },
+                "required": [
+                  "associationId"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/CommonId"
+            },
+            "in": "path",
+            "name": "installationId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "installationCredential": []
+          }
+        ],
+        "x-permission": null,
+        "x-roles": [],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sdk/installations/{installationId}/user": {
+      "patch": {
+        "operationId": "updateSdkUser",
+        "tags": [
+          "Native SDK"
+        ],
+        "description": "Installation-scoped operation. External IDs are unverified client assertions in v1.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "minProperties": 2,
+                "title": "UserPatch",
+                "type": "object",
+                "properties": {
+                  "associationId": {
+                    "$ref": "#/components/schemas/CommonId"
+                  },
+                  "email": {
+                    "$ref": "#/components/schemas/EmailUpdate"
+                  },
+                  "clearEmail": {
+                    "type": "boolean"
+                  },
+                  "removeTags": {
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CommonText"
+                    }
+                  },
+                  "tags": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/CommonScalar"
+                    }
+                  }
+                },
+                "required": [
+                  "associationId"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/CommonId"
+            },
+            "in": "path",
+            "name": "installationId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "installationCredential": []
+          }
+        ],
+        "x-permission": null,
+        "x-roles": [],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sdk/installations/{installationId}/subscription": {
+      "put": {
+        "operationId": "syncPushToken",
+        "tags": [
+          "Native SDK"
+        ],
+        "description": "Installation-scoped operation. External IDs are unverified client assertions in v1.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "title": "PushInput",
+                "type": "object",
+                "properties": {
+                  "associationId": {
+                    "$ref": "#/components/schemas/CommonId"
+                  },
+                  "provider": {
+                    "$ref": "#/components/schemas/SdkProvider"
+                  },
+                  "token": {
+                    "anyOf": [
+                      {
+                        "minLength": 1,
+                        "maxLength": 8192,
+                        "writeOnly": true,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "registration": {
+                    "$ref": "#/components/schemas/SubscribersPushRegistrationReport"
+                  },
+                  "permission": {
+                    "$ref": "#/components/schemas/SubscribersPermissionState"
+                  },
+                  "optedIn": {
+                    "type": "boolean"
+                  },
+                  "metadata": {
+                    "$ref": "#/components/schemas/SubscribersInstallationMetadata"
+                  }
+                },
+                "required": [
+                  "associationId",
+                  "provider",
+                  "token",
+                  "permission",
+                  "optedIn"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/CommonId"
+            },
+            "in": "path",
+            "name": "installationId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "installationCredential": []
+          }
+        ],
+        "x-permission": null,
+        "x-roles": [],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonAck"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sdk/installations/{installationId}/operations": {
+      "post": {
+        "operationId": "submitSdkOperations",
+        "tags": [
+          "Native SDK"
+        ],
+        "description": "Installation-scoped operation. External IDs are unverified client assertions in v1.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "title": "OperationsInput",
+                "type": "object",
+                "properties": {
+                  "associationId": {
+                    "$ref": "#/components/schemas/CommonId"
+                  },
+                  "operations": {
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/SdkOperation"
+                    }
+                  }
+                },
+                "required": [
+                  "associationId",
+                  "operations"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/CommonId"
+            },
+            "in": "path",
+            "name": "installationId",
+            "required": true
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 255,
+              "type": "string"
+            },
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "installationCredential": []
+          }
+        ],
+        "x-permission": null,
+        "x-roles": [],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "title": "OperationResults",
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OperationResult"
+                      }
+                    }
+                  },
+                  "required": [
+                    "results"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CommonId": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "SubscribersPlatform": {
+        "enum": [
+          "android",
+          "ios"
+        ],
+        "type": "string"
+      },
+      "CommonText": {
+        "minLength": 1,
+        "maxLength": 255,
+        "type": "string"
+      },
+      "SubscribersInstallationMetadata": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "appVersion": {
+            "minLength": 1,
+            "maxLength": 255,
+            "type": "string"
+          },
+          "sdkVersion": {
+            "minLength": 1,
+            "maxLength": 255,
+            "type": "string"
+          },
+          "osVersion": {
+            "minLength": 1,
+            "maxLength": 255,
+            "type": "string"
+          },
+          "locale": {
+            "minLength": 1,
+            "maxLength": 255,
+            "type": "string"
+          },
+          "timezone": {
+            "minLength": 1,
+            "maxLength": 255,
+            "type": "string"
+          }
+        }
+      },
+      "ServerState": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "$ref": "#/components/schemas/CommonId"
+          },
+          "associationId": {
+            "$ref": "#/components/schemas/CommonId"
+          },
+          "user": {
+            "$ref": "#/components/schemas/Subscriber"
+          },
+          "push": {
+            "$ref": "#/components/schemas/Push"
+          },
+          "revision": {
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "format": "int64",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/CommonTime"
+          }
+        },
+        "required": [
+          "installationId",
+          "associationId",
+          "user",
+          "push",
+          "revision",
+          "updatedAt"
+        ]
+      },
+      "Subscriber": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/CommonId"
+          },
+          "externalId": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "$ref": "#/components/schemas/CommonTags"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Email"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "externalId",
+          "tags",
+          "email"
+        ]
+      },
+      "CommonTags": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/CommonScalar"
+        }
+      },
+      "CommonScalar": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      },
+      "Email": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "optedIn": {
+            "type": "boolean"
+          },
+          "suppressed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "address",
+          "optedIn",
+          "suppressed"
+        ]
+      },
+      "Push": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "optedIn": {
+            "type": "boolean"
+          },
+          "tokenRegistered": {
+            "type": "boolean"
+          },
+          "registration": {
+            "$ref": "#/components/schemas/SubscribersPushRegistration"
+          },
+          "permission": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "optedIn",
+          "tokenRegistered",
+          "permission"
+        ]
+      },
+      "SubscribersPushRegistration": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "status": {
+            "pattern": "^(unknown|registered|failed)$",
+            "type": "string"
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "errorCode",
+          "updatedAt"
+        ]
+      },
+      "CommonTime": {
+        "format": "date-time",
+        "pattern": "Z$",
+        "type": "string"
+      },
+      "CommonErrorResponse": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/CommonText"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "message"
+              ]
+            }
+          },
+          "requestId": {
+            "$ref": "#/components/schemas/CommonText"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "requestId"
+        ]
+      },
+      "EmailUpdate": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "address": {
+            "minLength": 3,
+            "maxLength": 254,
+            "type": "string"
+          },
+          "optedIn": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "optedIn"
+        ]
+      },
+      "SdkProvider": {
+        "enum": [
+          "fcm",
+          "apns",
+          "mock"
+        ],
+        "type": "string"
+      },
+      "SubscribersPushRegistrationReport": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "status": {
+            "pattern": "^(registered|failed)$",
+            "type": "string"
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "pattern": "^(FCM_AUTHENTICATION_FAILED|FCM_TOKEN_UNAVAILABLE|FIREBASE_NOT_CONFIGURED|APNS_REGISTRATION_FAILED)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "errorCode"
+        ]
+      },
+      "SubscribersPermissionState": {
+        "enum": [
+          "not_determined",
+          "denied",
+          "authorized",
+          "provisional"
+        ],
+        "type": "string"
+      },
+      "CommonAck": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "SdkOperation": {
+        "additionalProperties": false,
+        "minProperties": 2,
+        "maxProperties": 2,
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "$ref": "#/components/schemas/CommonText"
+          },
+          "event": {
+            "$ref": "#/components/schemas/EventPayload"
+          },
+          "interaction": {
+            "$ref": "#/components/schemas/InteractionPayload"
+          }
+        },
+        "required": [
+          "operationId"
+        ]
+      },
+      "EventPayload": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "$ref": "#/components/schemas/CommonText"
+          },
+          "name": {
+            "$ref": "#/components/schemas/CommonText"
+          },
+          "occurredAt": {
+            "minimum": 0,
+            "maximum": 8640000000000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/CommonJsonObject"
+          }
+        },
+        "required": [
+          "eventId",
+          "name",
+          "occurredAt"
+        ]
+      },
+      "CommonJsonObject": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/JsonValue"
+        }
+      },
+      "JsonValue": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        ]
+      },
+      "InteractionPayload": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "deliveryId": {
+            "$ref": "#/components/schemas/CommonId"
+          },
+          "type": {
+            "$ref": "#/components/schemas/InteractionType"
+          },
+          "occurredAt": {
+            "minimum": 0,
+            "maximum": 8640000000000000,
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deliveryId",
+          "type",
+          "occurredAt"
+        ]
+      },
+      "InteractionType": {
+        "enum": [
+          "received",
+          "opened"
+        ],
+        "type": "string"
+      },
+      "OperationResult": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "$ref": "#/components/schemas/CommonText"
+          },
+          "succeeded": {
+            "type": "boolean"
+          },
+          "code": {
+            "$ref": "#/components/schemas/CommonText"
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "operationId",
+          "succeeded"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "installationCredential": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Scoped to one installation and project."
+      }
+    }
+  }
+}

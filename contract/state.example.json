@@ -1,0 +1,24 @@
+{
+  "installationId": "00000000-0000-4000-8000-000000000002",
+  "associationId": "00000000-0000-4000-8000-000000000003",
+  "user": {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "externalId": "customer-123",
+    "tags": {
+      "plan": "premium",
+      "active": true
+    },
+    "email": {
+      "address": "Customer@example.com",
+      "optedIn": true,
+      "suppressed": false
+    }
+  },
+  "push": {
+    "optedIn": true,
+    "tokenRegistered": true,
+    "permission": "authorized"
+  },
+  "revision": 7,
+  "updatedAt": "2026-09-18T12:00:00Z"
+}

@@ -1,0 +1,27 @@
+**/.gradle/
+**/.kotlin/
+**/build/
+**/local.properties
+**/google-services.json
+mock/__pycache__/
+**/.idea/
+**/*.iml
+
+# macOS metadata
+.DS_Store
+
+# Local environment files
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Signing credentials
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.p8
+*.key
+*.mobileprovision
+*.provisionprofile

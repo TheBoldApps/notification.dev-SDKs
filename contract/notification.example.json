@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "deliveryId": "00000000-0000-4000-8000-000000000005",
+  "associationId": "00000000-0000-4000-8000-000000000003",
+  "expiresAt": 2000000000000,
+  "title": "Hello",
+  "body": "Your notification is ready.",
+  "data": {
+    "orderId": "order-123"
+  },
+  "deepLink": "example://orders/order-123"
+}
