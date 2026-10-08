@@ -1,4 +1,50 @@
-# iOS releases
+# SDK releases
+
+## Android / Maven Central
+
+The Android SDK is configured to publish as `dev.notification:android-sdk:0.1.0`. Publish
+the shared core in the same release: `sdk-core`, `sdk-core-android`,
+`sdk-core-iosarm64`, and `sdk-core-iossimulatorarm64`, all under `dev.notification`.
+Gradle metadata selects the appropriate core platform for consumers.
+
+The Vanniktech Maven publishing plugin builds the artifacts, sources, documentation
+archives, POM metadata, and signatures. Public metadata lives in `gradle.properties`
+and the root `build.gradle.kts`. Set `POM_DEVELOPER_EMAIL` to the public maintainer
+contact email; the generated POM includes that email plus the developer organization.
+Keep Central user-token credentials and GPG signing credentials in your user-level
+`~/.gradle/gradle.properties`, outside Git. The signing public key must be available
+on a Central-supported keyserver. See the
+[publishing plugin guide](https://vanniktech.github.io/gradle-maven-publish-plugin/central/).
+
+From the SDK repository root, run these steps sequentially:
+
+```sh
+./gradlew verifyRelease
+./gradlew :core:publishToMavenLocal :android:publishToMavenLocal
+```
+
+`verifyRelease` runs Android debug unit tests, release lint, shared-core Android
+and iOS simulator tests, and the Kotlin plugin's POM metadata validation.
+This project does not define `:android:testReleaseUnitTest`.
+The iOS tests require macOS, Xcode, and an available Apple Silicon simulator.
+Local publishing writes signed packages to `~/.m2/repository/dev/notification/`;
+it does not upload anything to Central. Inspect the generated POMs and Gradle
+metadata under each module's `build/publications/` and test a consumer with
+`mavenLocal()` and no composite-build dependency substitution.
+
+After checks pass and the release is ready for upload:
+
+```sh
+./gradlew publishToMavenCentral
+```
+
+In [Central Portal deployments](https://central.sonatype.com/publishing/deployments),
+wait for validation, review the artifacts, and click **Publish**. Automatic release
+is not enabled by the committed configuration. Test a clean consumer with only
+`google()` and `mavenCentral()` and `dev.notification:android-sdk:0.1.0` after
+the artifacts become available. Use a new version for changes to a published release.
+
+## iOS releases
 
 Publish the Swift sources from this repository and the matching Kotlin core as a
 GitHub Release asset. The root `Package.swift` is the public package; the manifest

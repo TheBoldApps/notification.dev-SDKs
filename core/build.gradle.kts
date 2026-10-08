@@ -5,7 +5,7 @@ plugins {
     kotlin("plugin.serialization")
     id("com.android.kotlin.multiplatform.library")
     id("org.openapi.generator")
-    `maven-publish`
+    id("com.vanniktech.maven.publish")
 }
 
 val generateSdkApi by tasks.registering(org.openapitools.generator.gradle.plugin.tasks.GenerateTask::class) {
@@ -75,10 +75,8 @@ kotlin {
     }
 }
 
-publishing {
-    publications.withType<MavenPublication>().configureEach {
-        artifactId = artifactId.replace("core", "sdk-core")
-    }
+mavenPublishing {
+    coordinates("dev.notification", "sdk-core", "0.1.0")
 }
 
 // AGP derives baseline-profile directories from Kotlin source roots.

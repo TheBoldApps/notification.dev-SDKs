@@ -1,6 +1,9 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+import com.vanniktech.maven.publish.JavadocJar
+
 plugins {
     id("com.android.library")
-    `maven-publish`
+    id("com.vanniktech.maven.publish")
 }
 
 android {
@@ -16,9 +19,19 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    publishing { singleVariant("release") { withSourcesJar() } }
     testOptions { unitTests.isReturnDefaultValues = true }
     lint { abortOnError = true }
+}
+
+mavenPublishing {
+    coordinates("dev.notification", "android-sdk", "0.1.0")
+
+    configure(
+        AndroidSingleVariantLibrary(
+            variant = "release",
+            javadocJar = JavadocJar.Empty(),
+        )
+    )
 }
 
 dependencies {
@@ -31,19 +44,4 @@ dependencies {
     api("com.google.firebase:firebase-messaging:25.1.2")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
-}
-
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                from(components["release"])
-                artifactId = "android-sdk"
-                pom {
-                    name.set("notification.dev Android SDK")
-                    description.set("Native notification.dev client")
-                }
-            }
-        }
-    }
 }
