@@ -1,9 +1,27 @@
 # iOS SDK
 
-Swift API for iOS 15+, using direct APNs. Requires macOS, Xcode, JDK 17, and Android SDK 36 for the shared Gradle build. Supports devices and Apple Silicon simulators; CocoaPods and Intel simulators are unsupported.
+Swift API for iOS 15+, using direct APNs. Installing a published release requires Xcode; the Kotlin core is supplied as a precompiled XCFramework. Supports devices and Apple Silicon simulators; CocoaPods and Intel simulators are unsupported.
+
+## Install with Swift Package Manager
+
+In Xcode, choose **File > Add Package Dependencies**, enter
+`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.1.0`,
+and add the `NotificationDev` product to your app target.
+
+For another Swift package, declare:
+
+```swift
+.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.1.0")
+```
+
+Add `.product(name: "NotificationDev", package: "notification.dev-SDKs")` to
+your target's dependencies. Swift Package Manager downloads the matching Kotlin
+core automatically and verifies its archive checksum. No Gradle or Maven setup
+is needed in the consuming app.
 
 ## Install locally
 
+Building the SDK locally requires macOS, Xcode, JDK 17, and Android SDK 36.
 From the repository root:
 
 ```sh
@@ -11,6 +29,9 @@ From the repository root:
 ```
 
 Add `ios/` as a local Swift package in Xcode and link `NotificationDev`. Rebuild after core or contract changes; the XCFramework is ignored by Git.
+
+The root package manifest is for published releases; `ios/Package.swift` is for
+local development. See [the iOS release procedure](../RELEASING.md).
 
 ## Initialize and use
 

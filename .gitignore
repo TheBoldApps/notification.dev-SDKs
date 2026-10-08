@@ -1,6 +1,8 @@
 **/.gradle/
 **/.kotlin/
 **/build/
+**/.build/
+**/.swiftpm/
 **/local.properties
 **/google-services.json
 mock/__pycache__/

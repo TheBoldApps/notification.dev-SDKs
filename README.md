@@ -8,7 +8,7 @@ Android, iOS, and Flutter clients for notification.dev, powered by a shared Kotl
 | iOS | iOS 15+, macOS, Xcode, Apple Silicon simulator | [Setup](ios/README.md) | [SwiftUI app](example/ios-example/README.md) |
 | Flutter | Flutter 3.44+, Dart 3.12+, native build tools | [Setup](flutter/README.md) | [Flutter app](example/flutter-example/README.md) |
 
-Distribution currently uses local builds; packages are not published remotely. The committed [OpenAPI snapshot](contract/openapi.json) makes SDK builds independent of the backend checkout.
+The iOS SDK has a remote Swift Package Manager manifest; see its [installation guide](ios/README.md) and the [release procedure](RELEASING.md). Android and Flutter distribution currently use local builds. The committed [OpenAPI snapshot](contract/openapi.json) makes SDK builds independent of the backend checkout.
 
 ## Shared behavior
 
