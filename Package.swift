@@ -8,8 +8,8 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "NotificationCore",
-            url: "https://github.com/TheBoldApps/notification.dev-SDKs/releases/download/0.1.0/NotificationCore.xcframework.zip",
-            checksum: "389c503801066c5e665eb390627f073628c57fb11337928469f685c6adb26290"
+            url: "https://github.com/TheBoldApps/notification.dev-SDKs/releases/download/0.2.0/NotificationCore.xcframework.zip",
+            checksum: "42d8dbd8cee03ca2d4b277e7c88a365efcb1a1a5ffcdc53852ddf2ebdabea0b6"
         ),
         .target(
             name: "NotificationDev",

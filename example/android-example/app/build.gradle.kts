@@ -13,7 +13,7 @@ android {
         minSdk = 23
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "0.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -31,7 +31,7 @@ android {
 }
 
 dependencies {
-    implementation("dev.notification:android-sdk:0.1.0")
+    implementation("dev.notification:android-sdk:0.2.0")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

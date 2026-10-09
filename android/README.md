@@ -14,7 +14,7 @@ includeBuild("/path/to/notification.dev-SDKs") {
 }
 ```
 
-Add `implementation("dev.notification:android-sdk:0.1.0")` to your app dependencies. Configure Firebase with the Google Services plugin and your `google-services.json`. Firebase Messaging is included by the SDK.
+Add `implementation("dev.notification:android-sdk:0.2.0")` to your app dependencies. Configure Firebase with the Google Services plugin and your `google-services.json`. Firebase Messaging is included by the SDK.
 
 ## Initialize and use
 
@@ -67,3 +67,11 @@ The SDK, examples, and documentation in this repository are licensed under the
 [Apache License, Version 2.0](../LICENSE). See [NOTICE](../NOTICE) for attribution.
 Third-party components retain their respective licenses. The hosted notification.dev
 service and its separate backend are not covered by this license.
+
+## HTTP development endpoints
+
+HTTPS is required by default. Explicitly set `allowHttp: true` (Swift:
+`allowHTTP: true`) to permit HTTP to any host, including private LAN IPs. Configure
+Android cleartext policy or iOS App Transport Security in the host app as needed;
+the SDK option does not override OS restrictions. The 0.2.0 flag replaces the
+previous API without compatibility aliases or startup configuration migration.

@@ -36,7 +36,7 @@ internal object NativeStartup {
             projectId = string("projectId"), baseUrl = string("baseUrl"), smallIcon = resourceId,
             channelId = string("androidChannelId"), channelName = string("androidChannelName"),
             displayInForeground = values["displayInForeground"]?.jsonPrimitive?.boolean ?: true,
-            allowLocalhostHttp = values["allowLocalhostHttp"]?.jsonPrimitive?.boolean ?: false,
+            allowHttp = values["allowHttp"]?.jsonPrimitive?.boolean ?: false,
             loggingEnabled = values["loggingEnabled"]?.jsonPrimitive?.boolean ?: false,
         )
     }

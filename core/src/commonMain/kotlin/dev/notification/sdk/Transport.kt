@@ -37,7 +37,7 @@ internal class HttpTransport(
     override suspend fun register(id: String, secret: String): Registration {
         val response = http.execute { api ->
             api.registerInstallation(id, RegistrationInput(
-                projectId, id, secret, SubscribersPlatform.valueOf(platform.name), "0.1.0", metadata.toWire()
+                projectId, id, secret, SubscribersPlatform.valueOf(platform.name), "0.2.0", metadata.toWire()
             ))
         }
 

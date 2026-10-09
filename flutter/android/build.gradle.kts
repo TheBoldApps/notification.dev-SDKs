@@ -1,5 +1,5 @@
 group = "dev.notification.notification_dev"
-version = "0.1.0"
+version = "0.2.0"
 
 plugins {
     id("com.android.library")
@@ -24,7 +24,7 @@ kotlin {
 }
 
 dependencies {
-    api("dev.notification:android-sdk:0.1.0")
+    api("dev.notification:android-sdk:0.2.0")
     implementation("androidx.startup:startup-runtime:1.2.0")
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     testImplementation("junit:junit:4.13.2")

@@ -13,7 +13,7 @@ class IosCancellation internal constructor(private val job: Job) {
 class IosBridge @Throws(Exception::class) constructor(
     projectId: String,
     baseUrl: String,
-    allowLocalhostHttp: Boolean,
+    allowHttp: Boolean,
     loggingEnabled: Boolean,
     appVersion: String,
     osVersion: String,
@@ -29,7 +29,7 @@ class IosBridge @Throws(Exception::class) constructor(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val client = CoreClient(
-        CoreConfig(projectId, baseUrl, allowLocalhostHttp, loggingEnabled),
+        CoreConfig(projectId, baseUrl, allowHttp, loggingEnabled),
         object : SecureStorage {
             override suspend fun load(): String? {
                 val result = wireJson.parseToJsonElement(load()).jsonObject

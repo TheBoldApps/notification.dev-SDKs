@@ -52,9 +52,8 @@ internal class ApiHttpClient(
 
     init {
         require(base.user == null && base.password == null && base.parameters.isEmpty() && base.fragment.isEmpty())
-        require(base.protocol == URLProtocol.HTTPS || (config.allowLocalhostHttp && base.protocol == URLProtocol.HTTP &&
-            base.host in setOf("localhost", "127.0.0.1", "10.0.2.2", "::1", "[::1]"))) {
-            "HTTPS is required except explicitly enabled local development hosts"
+        require(base.protocol == URLProtocol.HTTPS || (config.allowHttp && base.protocol == URLProtocol.HTTP)) {
+            "HTTPS is required unless allowHttp is enabled"
         }
     }
 

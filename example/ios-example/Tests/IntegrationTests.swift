@@ -6,7 +6,7 @@ final class IntegrationTests: XCTestCase {
     func testFacadeInitializationAndIndependentStreams() async throws {
         let config = SdkConfig(
             projectId: "ios-swift-facade-tests", baseURL: URL(string: "http://127.0.0.1:1/")!,
-            allowLocalhostHTTP: true
+            allowHTTP: true
         )
         let client = try await NotificationDev.initialize(config)
         let repeated = try await NotificationDev.initialize(config)

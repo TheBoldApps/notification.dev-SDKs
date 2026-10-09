@@ -18,7 +18,7 @@ class GeneratedApiTest {
     private val state = ServerState("installation", "association", SubscriberState("user"), revision = 1, updatedAt = "now")
 
     private fun config(server: MockWebServer, prefix: String = "/") =
-        CoreConfig("project", server.url(prefix).toString(), allowLocalhostHttp = true)
+        CoreConfig("project", server.url(prefix).toString(), allowHttp = true)
 
     private fun MockWebServer.replyState() {
         enqueue(MockResponse().setBody(wireJson.encodeToString(state)))
@@ -47,7 +47,7 @@ class GeneratedApiTest {
             assertEquals(registration, transport.register("installation", "secret"))
             val body = server.next("POST", "/v1/sdk/installations", "installation", null).bodyJson()
             assertEquals(
-                wireJson.parseToJsonElement("""{"projectId":"project","installationId":"installation","registrationSecret":"secret","platform":"android","sdkVersion":"0.1.0","metadata":{"appVersion":"1.2","locale":"en"}}"""),
+                wireJson.parseToJsonElement("""{"projectId":"project","installationId":"installation","registrationSecret":"secret","platform":"android","sdkVersion":"0.2.0","metadata":{"appVersion":"1.2","locale":"en"}}"""),
                 body
             )
 

@@ -81,6 +81,18 @@ void main() {
     expect((calls.last.arguments as Map)['baseUrl'], 'https://api.example/');
   });
 
+  test('HTTP opt-in crosses the bridge using the new key', () async {
+    expect(config.toJson()['allowHttp'], false);
+    const local = SdkConfig(
+      projectId: 'project',
+      baseUrl: 'http://192.168.2.20:5173/',
+      allowHttp: true,
+    );
+    await NotificationDev.initialize(local);
+    expect((calls.last.arguments as Map)['allowHttp'], true);
+    expect((calls.last.arguments as Map)['baseUrl'], local.baseUrl);
+  });
+
   test('local getters decode native state without refreshing', () async {
     final state = await sdk.getState();
     expect(state.availability, Availability.available);

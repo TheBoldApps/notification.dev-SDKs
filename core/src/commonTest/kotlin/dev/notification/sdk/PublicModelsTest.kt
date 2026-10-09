@@ -8,7 +8,7 @@ class PublicModelsTest {
     @Test
     fun configurationDefaultsToHostedApiAndPreservesOverrides() {
         assertEquals("https://app.notification.dev/", CoreConfig("project").baseUrl)
-        assertEquals("http://localhost:3000/", CoreConfig("project", "http://localhost:3000/", allowLocalhostHttp = true).baseUrl)
+        assertEquals("http://localhost:3000/", CoreConfig("project", "http://localhost:3000/", allowHttp = true).baseUrl)
     }
 
     @Test

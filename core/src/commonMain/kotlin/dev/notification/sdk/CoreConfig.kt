@@ -3,7 +3,7 @@ package dev.notification.sdk
 data class CoreConfig(
     val projectId: String,
     val baseUrl: String = "https://app.notification.dev/",
-    val allowLocalhostHttp: Boolean = false,
+    val allowHttp: Boolean = false,
     val loggingEnabled: Boolean = false
 ) {
     init {

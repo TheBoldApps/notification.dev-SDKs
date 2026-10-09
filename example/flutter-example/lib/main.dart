@@ -39,7 +39,7 @@ class _ExampleAppState extends State<ExampleApp> {
         const SdkConfig(
           // Replace this placeholder with your notification.dev project UUID.
           projectId: 'YOUR_PUBLIC_PROJECT_UUID',
-          allowLocalhostHttp: true,
+          allowHttp: true,
           loggingEnabled: true,
         ),
       );

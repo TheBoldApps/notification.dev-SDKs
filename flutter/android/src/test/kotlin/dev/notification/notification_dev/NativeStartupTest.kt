@@ -24,7 +24,8 @@ class NativeStartupTest {
 
     private fun values() = buildJsonObject {
         put("projectId", "project")
-        put("baseUrl", "https://api.example/")
+        put("baseUrl", "http://192.168.2.20:5173/")
+        put("allowHttp", true)
         put("androidSmallIcon", "ic_notification")
         put("androidChannelId", "notification_dev")
         put("androidChannelName", "Notifications")
@@ -43,6 +44,8 @@ class NativeStartupTest {
             NativeStartup.restore(context) { application, config ->
                 assertSame(app, application)
                 assertEquals("project", config.projectId)
+                assertEquals("http://192.168.2.20:5173/", config.baseUrl)
+                assertTrue(config.allowHttp)
                 calls++
             }
 
@@ -78,7 +81,8 @@ class NativeStartupTest {
 
         assertEquals(42, config.smallIcon)
         assertTrue(config.displayInForeground)
-        assertFalse(config.allowLocalhostHttp)
+        assertTrue(config.allowHttp)
+        assertFalse(NativeStartup.config(context(), JsonObject(values() - "allowHttp")).allowHttp)
         assertTrue(NativeStartup.automatic(values()))
         assertFalse(NativeStartup.automatic(JsonObject(values() + ("automaticIntegration" to JsonPrimitive(false)))))
     }

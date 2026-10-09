@@ -8,7 +8,7 @@ data class SdkConfig(
     val channelId: String = "notification_dev",
     val channelName: String = "Notifications",
     val displayInForeground: Boolean = true,
-    val allowLocalhostHttp: Boolean = false,
+    val allowHttp: Boolean = false,
     /** Opt-in diagnostic logging to Logcat under the NotificationDev tag. */
     val loggingEnabled: Boolean = false,
 )
@@ -31,6 +31,6 @@ sealed interface PushPermissionResult {
 
 enum class SettingsOpenResult { OPENED, UNAVAILABLE }
 
-internal fun SdkConfig.coreConfig() = CoreConfig(projectId, baseUrl, allowLocalhostHttp, loggingEnabled)
+internal fun SdkConfig.coreConfig() = CoreConfig(projectId, baseUrl, allowHttp, loggingEnabled)
 
 internal fun AndroidPushPermissionStatus.shared() = PushPermissionStatus(areNotificationsEnabled)

@@ -11,7 +11,7 @@ import org.junit.Test
 class ContractTest {
     @Test fun subscriptionRejectionPreservesBackendErrorCode() = runTest {
         MockWebServer().use { server ->
-            val transport = HttpTransport(CoreConfig("project", server.url("/").toString(), allowLocalhostHttp = true))
+            val transport = HttpTransport(CoreConfig("project", server.url("/").toString(), allowHttp = true))
             server.enqueue(MockResponse().setResponseCode(409).setBody("""{"code":"PROVIDER_CONFIGURATION_REQUIRED","message":"Exactly one active matching provider configuration is required.","requestId":"test"}"""))
 
             try {
@@ -42,7 +42,7 @@ class ContractTest {
     @Test fun transportUsesSingleUserPatchWithoutIdentityProof() = runTest {
         MockWebServer().use { server ->
             server.start()
-            val transport = HttpTransport(CoreConfig("project", server.url("/").toString(), allowLocalhostHttp = true))
+            val transport = HttpTransport(CoreConfig("project", server.url("/").toString(), allowHttp = true))
             val snapshot = ServerState("installation", "association", SubscriberState("user", tags = mapOf("plan" to JsonPrimitive("premium"))), revision = 3, updatedAt = "2026-09-18T00:00:00Z")
             server.enqueue(MockResponse().setBody(wireJson.encodeToString(snapshot)))
             assertEquals(snapshot, transport.read("installation", "credential"))
@@ -66,7 +66,7 @@ class ContractTest {
     }
     @Test fun operationRejectionInsideSuccessfulHttpIsNotTreatedAsSuccess() = runTest {
         MockWebServer().use { server ->
-            val transport = HttpTransport(CoreConfig("project", server.url("/").toString(), allowLocalhostHttp = true))
+            val transport = HttpTransport(CoreConfig("project", server.url("/").toString(), allowHttp = true))
             server.enqueue(MockResponse().setBody("""{"results":[{"operationId":"op","succeeded":false,"code":"STALE_ASSOCIATION","retryable":false}]}"""))
             try { transport.sendEvent("i", "c", QueuedEvent("op", "a", Event.Track("test", JsonObject(emptyMap()), 0))); fail() }
             catch (e: TransportException) { assertFalse(e.retryable); assertEquals("STALE_ASSOCIATION", e.code) }
@@ -74,13 +74,13 @@ class ContractTest {
     }
     @Test fun throttlingRetryAfterIsParsed() = runTest {
         MockWebServer().use { server ->
-            val transport = HttpTransport(CoreConfig("project", server.url("/").toString(), allowLocalhostHttp = true))
+            val transport = HttpTransport(CoreConfig("project", server.url("/").toString(), allowHttp = true))
             server.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", "120"))
             try { transport.read("i", "c"); fail() } catch (e: TransportException) { assertTrue(e.retryable); assertEquals(120000, e.retryAfterMs) }
         }
     }
-    @Test fun remoteCleartextIsRejected() {
-        try { HttpTransport(CoreConfig("project", "http://example.com/", allowLocalhostHttp = true)); fail() }
+    @Test fun cleartextIsRejectedByDefault() {
+        try { HttpTransport(CoreConfig("project", "http://example.com/")); fail() }
         catch (_: IllegalArgumentException) { }
     }
     @Test fun emailNormalizationPreservesLocalPartAndRejectsInvalidDomain() {

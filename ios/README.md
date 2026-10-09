@@ -5,13 +5,13 @@ Swift API for iOS 15+, using direct APNs. Installing a published release require
 ## Install with Swift Package Manager
 
 In Xcode, choose **File > Add Package Dependencies**, enter
-`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.1.0`,
+`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.2.0`,
 and add the `NotificationDev` product to your app target.
 
 For another Swift package, declare:
 
 ```swift
-.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.1.0")
+.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.2.0")
 ```
 
 Add `.product(name: "NotificationDev", package: "notification.dev-SDKs")` to
@@ -91,3 +91,11 @@ The SDK, examples, and documentation in this repository are licensed under the
 [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.
 Third-party components retain their respective licenses. The hosted notification.dev
 service and its separate backend are not covered by this license.
+
+## HTTP development endpoints
+
+HTTPS is required by default. Explicitly set `allowHttp: true` (Swift:
+`allowHTTP: true`) to permit HTTP to any host, including private LAN IPs. Configure
+Android cleartext policy or iOS App Transport Security in the host app as needed;
+the SDK option does not override OS restrictions. The 0.2.0 flag replaces the
+previous API without compatibility aliases or startup configuration migration.

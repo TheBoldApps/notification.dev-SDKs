@@ -54,7 +54,7 @@ public final class NotificationDev {
         let storage = try SecureStorage()
         bridge = try IosBridge(
             projectId: config.projectId, baseUrl: config.baseURL.absoluteString,
-            allowLocalhostHttp: config.allowLocalhostHTTP, loggingEnabled: config.loggingEnabled,
+            allowHttp: config.allowHTTP, loggingEnabled: config.loggingEnabled,
             appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
                 ?? "",
             osVersion: UIDevice.current.systemVersion, locale: Locale.current.identifier,

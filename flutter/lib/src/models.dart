@@ -11,7 +11,7 @@ class SdkConfig {
     this.androidChannelId = 'notification_dev',
     this.androidChannelName = 'Notifications',
     this.displayInForeground = true,
-    this.allowLocalhostHttp = false,
+    this.allowHttp = false,
     this.loggingEnabled = false,
     this.automaticIntegration = true,
   });
@@ -22,7 +22,7 @@ class SdkConfig {
   final String androidChannelId;
   final String androidChannelName;
   final bool displayInForeground;
-  final bool allowLocalhostHttp;
+  final bool allowHttp;
   final bool loggingEnabled;
   final bool automaticIntegration;
 
@@ -33,7 +33,7 @@ class SdkConfig {
     'androidChannelId': androidChannelId,
     'androidChannelName': androidChannelName,
     'displayInForeground': displayInForeground,
-    'allowLocalhostHttp': allowLocalhostHttp,
+    'allowHttp': allowHttp,
     'loggingEnabled': loggingEnabled,
     'automaticIntegration': automaticIntegration,
   };

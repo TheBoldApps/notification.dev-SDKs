@@ -27,7 +27,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
                     SdkConfig(
                         // Replace this placeholder with your notification.dev project UUID.
                         projectId: "YOUR_PUBLIC_PROJECT_UUID",
-                        allowLocalhostHTTP: _isDebugAssertConfiguration(),
+                        allowHTTP: _isDebugAssertConfiguration(),
                         loggingEnabled: _isDebugAssertConfiguration()
                     ))
                 model.attach(client)

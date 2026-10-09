@@ -14,11 +14,11 @@ class FileStateStoreTest {
     @Test
     fun configurationPassesHostedDefaultAndOverridesToCore() {
         val hosted = SdkConfig(projectId = "project", smallIcon = 1)
-        val local = hosted.copy(baseUrl = "http://localhost:3000/", allowLocalhostHttp = true)
+        val local = hosted.copy(baseUrl = "http://localhost:3000/", allowHttp = true)
 
         assertEquals("https://app.notification.dev/", hosted.coreConfig().baseUrl)
         assertEquals("http://localhost:3000/", local.coreConfig().baseUrl)
-        assertTrue(local.coreConfig().allowLocalhostHttp)
+        assertTrue(local.coreConfig().allowHttp)
     }
 
 

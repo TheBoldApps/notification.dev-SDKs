@@ -3,18 +3,18 @@ import Foundation
 public struct SdkConfig: Equatable, Sendable {
     public let projectId: String
     public let baseURL: URL
-    public var allowLocalhostHTTP: Bool
+    public var allowHTTP: Bool
     public var loggingEnabled: Bool
     public var displayInForeground: Bool
 
     public init(
         projectId: String, baseURL: URL = URL(string: "https://app.notification.dev/")!,
-        allowLocalhostHTTP: Bool = false,
+        allowHTTP: Bool = false,
         loggingEnabled: Bool = false, displayInForeground: Bool = true
     ) {
         self.projectId = projectId
         self.baseURL = baseURL
-        self.allowLocalhostHTTP = allowLocalhostHTTP
+        self.allowHTTP = allowHTTP
         self.loggingEnabled = loggingEnabled
         self.displayInForeground = displayInForeground
     }

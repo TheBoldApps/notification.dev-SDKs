@@ -10,7 +10,7 @@ private struct PluginConfiguration: Codable, Equatable {
     let projectId: String
     let baseUrl: String
     let displayInForeground: Bool
-    let allowLocalhostHttp: Bool
+    let allowHttp: Bool
     let loggingEnabled: Bool
     let automaticIntegration: Bool
 
@@ -19,7 +19,7 @@ private struct PluginConfiguration: Codable, Equatable {
             guard let url = URL(string: baseUrl) else { throw BridgeFailure.invalidArgument }
 
             return SdkConfig(
-                projectId: projectId, baseURL: url, allowLocalhostHTTP: allowLocalhostHttp,
+                projectId: projectId, baseURL: url, allowHTTP: allowHttp,
                 loggingEnabled: loggingEnabled, displayInForeground: displayInForeground)
         }
     }

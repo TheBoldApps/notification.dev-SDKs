@@ -9,7 +9,9 @@ import class NotificationCore.IosBridge
 final class StorageTests: XCTestCase {
     func testConfigurationDefaultsToHostedApiAndPreservesOverrides() {
         XCTAssertEqual(SdkConfig(projectId: "project").baseURL.absoluteString, "https://app.notification.dev/")
-        let localURL = URL(string: "http://localhost:3000/")!
+        XCTAssertFalse(SdkConfig(projectId: "project").allowHTTP)
+        let localURL = URL(string: "http://192.168.2.20:5173/")!
+        XCTAssertTrue(SdkConfig(projectId: "project", baseURL: localURL, allowHTTP: true).allowHTTP)
         XCTAssertEqual(SdkConfig(projectId: "project", baseURL: localURL).baseURL, localURL)
     }
 
@@ -78,9 +80,10 @@ final class BridgeTests: XCTestCase {
     private var diagnostics: [String] = []
     private var clears = 0
 
-    private func bridge(loadFailure: Bool = false, saveFailure: Bool = false) throws -> IosBridge {
+    private func bridge(loadFailure: Bool = false, saveFailure: Bool = false,
+                        baseURL: String = "https://example.com", allowHttp: Bool = false) throws -> IosBridge {
         try IosBridge(
-            projectId: "project", baseUrl: "https://example.com", allowLocalhostHttp: false,
+            projectId: "project", baseUrl: baseURL, allowHttp: allowHttp,
             loggingEnabled: false, appVersion: "1", osVersion: "15", locale: "en", timezone: "UTC",
             load: { [self] in
                 if loadFailure { return "{\"error\":\"locked\"}" }
@@ -112,6 +115,11 @@ final class BridgeTests: XCTestCase {
 
     private func state(_ bridge: IosBridge) throws -> SdkState {
         try JSONDecoder().decode(SdkState.self, from: Data(bridge.state().utf8))
+    }
+
+    func testHttpOptInReachesNativeCore() throws {
+        let client = try bridge(baseURL: "http://192.168.2.20:5173/", allowHttp: true)
+        client.close()
     }
 
     func testStartupLocalEditsAndStateModelRoundTrip() async throws {

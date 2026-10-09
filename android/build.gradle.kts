@@ -24,7 +24,7 @@ android {
 }
 
 mavenPublishing {
-    coordinates("dev.notification", "android-sdk", "0.1.0")
+    coordinates("dev.notification", "android-sdk", "0.2.0")
 
     configure(
         AndroidSingleVariantLibrary(

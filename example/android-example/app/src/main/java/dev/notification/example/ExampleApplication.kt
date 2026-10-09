@@ -12,7 +12,7 @@ class ExampleApplication : Application() {
         NotificationDev.initialize(this, SdkConfig(
             projectId = "YOUR_PUBLIC_PROJECT_UUID",
             smallIcon = R.drawable.ic_notification,
-            allowLocalhostHttp = BuildConfig.DEBUG,
+            allowHttp = BuildConfig.DEBUG,
             loggingEnabled = BuildConfig.DEBUG,
         ))
     }

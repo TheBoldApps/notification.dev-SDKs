@@ -1,6 +1,6 @@
 name: notification_dev_example
 description: Demonstrates the notification.dev Flutter SDK.
-version: 0.1.0+1
+version: 0.2.0+1
 publish_to: none
 
 environment:
