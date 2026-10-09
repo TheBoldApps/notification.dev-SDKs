@@ -64,20 +64,15 @@ then build the [iOS example](example/ios-example/README.md#build) for an ARM64
 simulator and an iPhone destination. Verify the XCFramework contains both
 `ios-arm64` and `ios-arm64-simulator` slices.
 
-Archive the framework and calculate the checksum of the exact ZIP to upload:
+`prepareSwiftPackage` also creates `build/NotificationCore.xcframework.zip`,
+computes its SHA-256 checksum, and updates the root `Package.swift` with the
+release URL (using the Gradle project version) and checksum. It prints the exact
+ZIP path and next steps. No separate `ditto` or checksum command is required.
 
-```sh
-mkdir -p /tmp/notification-release-0.2.0
-ditto -c -k --sequesterRsrc --keepParent \
-  ios/Artifacts/NotificationCore.xcframework \
-  /tmp/notification-release-0.2.0/NotificationCore.xcframework.zip
-swift package compute-checksum /tmp/notification-release-0.2.0/NotificationCore.xcframework.zip
-```
-
-Set the root manifest's binary URL to
-`https://github.com/TheBoldApps/notification.dev-SDKs/releases/download/VERSION/NotificationCore.xcframework.zip`
-and replace its checksum. Update the installation examples to the release
-version. Validate the manifest with `swift package dump-package` from the root.
+The task retains `ios/Artifacts/NotificationCore.xcframework` for local Swift
+development. An unchanged framework reuses the existing ZIP so its bytes and
+checksum remain stable. If you change the binary or version, prepare again before
+committing. Update the installation examples to the release version.
 
 Commit the manifest and documentation before creating the semantic version tag
 (for example, `0.2.0`). Build the binary from the same source revision as the
@@ -97,6 +92,50 @@ This check must not use the local `ios/` package or a pre-existing package cache
 Never replace a published archive or move an existing release tag. Publish a new
 version for corrections. Android/Maven and Flutter/pub.dev publishing are separate
 release steps; neither is needed to install the Swift package.
+
+### Repository-scoped release script
+
+`scripts/release_github.py` publishes the exact prepared archive using Python 3
+and the GitHub REST API. GitHub CLI and an account-wide OAuth login are not needed.
+The script does not build or test the SDK; complete the verification above first.
+
+Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new)
+with resource owner **TheBoldApps**, **Only select repositories** →
+**notification.dev-SDKs**, and repository permission **Contents: Read and write**.
+Leave other optional permissions unset and choose a short expiration. If the
+organization requires approval, the token must be approved before publishing.
+GitHub uses Contents write for both releases and repository content; it does not
+offer a release-only token permission. Never commit the token or paste it in chat.
+
+Commit and push the tested release sources, checksum, and script. Then run from
+the SDK root (the token prompt below uses the default macOS zsh shell):
+
+```sh
+python3 scripts/release_github.py
+read -s 'GH_TOKEN?Repository-scoped GitHub token: '
+export GH_TOKEN
+python3 scripts/release_github.py --publish
+unset GH_TOKEN
+```
+
+By default the script only checks the local manifest/archive checksum and prints
+the version and HEAD revision; it makes no network calls. Use `--archive PATH`
+to supply a ZIP other than the default `build/NotificationCore.xcframework.zip`.
+
+Publishing requires a clean working tree and a HEAD commit already on GitHub.
+It creates the version tag at that exact revision if absent, refuses an existing
+tag at another revision, creates a draft, uploads the archive, validates GitHub's
+asset digest, then publishes and verifies the public archive checksum. It never
+replaces a published release or asset. An interrupted matching draft can be
+resumed by running the same command; an incomplete or mismatched asset requires
+manual inspection. If publication succeeds but public download verification
+fails, inspect the published release before retrying.
+
+For future CI use, the same script accepts a GitHub Actions `GITHUB_TOKEN` in
+`GH_TOKEN`, with job permission `contents: write`; that token is scoped to the
+workflow repository and expires automatically. No personal token is needed for
+that setup. The workflow must supply the exact ZIP matching the committed
+checksum, rather than assume a fresh build produces byte-identical ZIP files.
 
 
 ## Flutter / pub.dev
@@ -162,16 +201,14 @@ components locally, then publish the native dependencies before Flutter:
    Flutter dependencies pointed at release 0.2.0.
 2. Publish Android and every shared-core artifact with `./gradlew publishToMavenCentral`.
    Validate and publish in Central Portal; confirm download availability.
-3. ZIP the newly built XCFramework and compute the checksum as above. Set the
-   root Swift manifest's 0.2.0 URL and checksum. Commit the tested sources and
-   manifest, tag that revision 0.2.0, and push the commit and tag. Create the release
-   and upload the exact archive using GitHub CLI (no browser upload required):
+3. `:core:prepareSwiftPackage` has already created the ZIP in `build/` and
+   updated the root Swift manifest URL and checksum. Commit the tested sources
+   and manifest, and push the commit. Create the tag and release and upload the exact
+   archive using the repository-scoped script described above:
 
    ```sh
-   gh auth login
-   gh release create 0.2.0 /tmp/notification-release-0.2.0/NotificationCore.xcframework.zip \
-     --repo TheBoldApps/notification.dev-SDKs \
-     --verify-tag --title "SDK 0.2.0" --generate-notes
+   python3 scripts/release_github.py
+   python3 scripts/release_github.py --publish
    ```
 
 4. Test isolated consumers against the downloadable Android artifacts and GitHub

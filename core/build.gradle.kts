@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFramework
+import java.security.MessageDigest
 
 plugins {
     kotlin("multiplatform")
@@ -84,9 +85,62 @@ tasks.matching { it.name == "prepareAndroidMainArtProfile" }.configureEach {
     dependsOn(generateSdkApi)
 }
 
-// Stage the binary inside the local Swift package; binaries remain untracked.
-tasks.register<Sync>("prepareSwiftPackage") {
+// Keep a local package for development and a separate ZIP for distribution.
+val stageSwiftFramework by tasks.registering(Sync::class) {
     dependsOn("assembleNotificationCoreReleaseXCFramework")
     from(layout.buildDirectory.dir("XCFrameworks/release/NotificationCore.xcframework"))
     into(rootProject.layout.projectDirectory.dir("ios/Artifacts/NotificationCore.xcframework"))
+}
+
+val swiftReleaseArchive = rootProject.layout.buildDirectory.file("NotificationCore.xcframework.zip")
+val packageSwiftFramework by tasks.registering(Exec::class) {
+    dependsOn(stageSwiftFramework)
+    val framework = rootProject.layout.projectDirectory.dir("ios/Artifacts/NotificationCore.xcframework")
+    inputs.dir(framework)
+    outputs.file(swiftReleaseArchive)
+    commandLine(
+        "ditto", "-c", "-k", "--sequesterRsrc", "--keepParent",
+        framework.asFile.absolutePath, swiftReleaseArchive.get().asFile.absolutePath,
+    )
+    doFirst {
+        val archive = swiftReleaseArchive.get().asFile
+        archive.parentFile.mkdirs()
+        // ditto can update an existing ZIP; always create a fresh archive when inputs change.
+        archive.delete()
+    }
+}
+
+tasks.register("prepareSwiftPackage") {
+    group = "distribution"
+    description = "Builds the Swift release ZIP and updates the public manifest URL and checksum."
+    dependsOn(packageSwiftFramework)
+    doLast {
+        val archive = swiftReleaseArchive.get().asFile
+        val digest = MessageDigest.getInstance("SHA-256")
+        archive.inputStream().use { stream ->
+            val buffer = ByteArray(8192)
+            var count = stream.read(buffer)
+            while (count != -1) {
+                digest.update(buffer, 0, count)
+                count = stream.read(buffer)
+            }
+        }
+        val checksum = digest.digest().joinToString("") { "%02x".format(it) }
+        val releaseVersion = project.version.toString()
+        val url = "https://github.com/TheBoldApps/notification.dev-SDKs/releases/download/$releaseVersion/NotificationCore.xcframework.zip"
+        val manifest = rootProject.file("Package.swift")
+        val original = manifest.readText()
+        val urlPattern = Regex("""url:\s*"https://github\.com/TheBoldApps/notification\.dev-SDKs/releases/download/[^"\s]+/NotificationCore\.xcframework\.zip"""")
+        val checksumPattern = Regex("""checksum:\s*"[a-f0-9]{64}"""")
+        check(urlPattern.findAll(original).count() == 1 && checksumPattern.findAll(original).count() == 1) {
+            "Expected one NotificationCore release URL and checksum in Package.swift; manifest was not changed."
+        }
+        val updated = original.replace(urlPattern, "url: \"$url\"")
+            .replace(checksumPattern, "checksum: \"$checksum\"")
+        if (updated != original) manifest.writeText(updated)
+        logger.lifecycle("Swift release $releaseVersion ready: ${archive.absolutePath}")
+        logger.lifecycle("SHA-256: $checksum")
+        logger.lifecycle("Package.swift updated. Commit it with the tested sources, create tag $releaseVersion, and upload this exact ZIP to the GitHub release.")
+        logger.lifecycle("Nothing was uploaded or published.")
+    }
 }

@@ -27,3 +27,4 @@ mock/__pycache__/
 *.key
 *.mobileprovision
 *.provisionprofile
+.github-key.txt
