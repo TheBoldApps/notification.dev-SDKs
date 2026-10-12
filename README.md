@@ -1,16 +1,21 @@
 # notification.dev SDKs
 
-Android, iOS, and Flutter clients for notification.dev, powered by a shared Kotlin Multiplatform core. Supports push notifications, user identity, tags, email preferences, events, and offline synchronization.
+Android, iOS, Flutter, and Expo clients for notification.dev, powered by a shared Kotlin Multiplatform core. Supports push notifications, user identity, tags, email preferences, events, and offline synchronization.
 
 | Platform | Requirements | Guide | Example |
 | --- | --- | --- | --- |
 | Android | API 23+, JDK 17, Android SDK 36 | [Setup](android/README.md) | [Android app](example/android-example/README.md) |
 | iOS | iOS 15+, macOS, Xcode, Apple Silicon simulator | [Setup](ios/README.md) | [SwiftUI app](example/ios-example/README.md) |
 | Flutter | Flutter 3.44+, Dart 3.12+, native build tools | [Setup](flutter/README.md) | [Flutter app](example/flutter-example/README.md) |
+| Expo | Expo SDK 57, Android API 24+, iOS 16.4+, development build | [Setup](expo/README.md) | [Expo app](example/expo-example/README.md) |
 
 The iOS SDK has a remote Swift Package Manager manifest; see its [installation guide](ios/README.md). Android has Maven Central publishing configured; see the [release procedure](RELEASING.md) for local verification and upload steps. Flutter has pub.dev packaging configured and depends on the released native SDKs; see the [release procedure](RELEASING.md#flutter--pubdev). The committed [OpenAPI snapshot](contract/openapi.json) makes SDK builds independent of the backend checkout.
 
 ## Shared behavior
+
+The Expo package wraps the released Maven and remote Swift packages; it contains
+no bundled native SDK implementation. See its [guide](expo/README.md) for build
+configuration and [release checks](RELEASING.md#expo--npm) for npm packaging.
 
 - Initialize once per process with your public notification.dev project UUID. The default API is `https://app.notification.dev/`.
 - Setters update local state and schedule sync; they do not confirm server acceptance. Observe state and diagnostics for pending changes and errors. `refresh()` fetches server state while retaining pending edits.

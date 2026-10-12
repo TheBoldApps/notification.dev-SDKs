@@ -1,0 +1,7 @@
+{
+  "name": "notification-dev-expo-example", "version": "1.0.0", "private": true,
+  "main": "index.js",
+  "scripts": {"start": "expo start --dev-client", "android": "expo run:android", "ios": "expo run:ios", "typecheck": "tsc --noEmit"},
+  "dependencies": {"@notification.dev/expo": "file:../../expo", "expo": "~57.0.28", "expo-dev-client": "~57.0.0", "react": "19.2.3", "react-native": "0.86.3"},
+  "devDependencies": {"@types/react": "~19.2.2", "typescript": "~5.9.2"}
+}

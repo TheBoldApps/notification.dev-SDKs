@@ -28,3 +28,10 @@ mock/__pycache__/
 *.mobileprovision
 *.provisionprofile
 .github-key.txt
+
+# Expo / npm
+**/node_modules/
+**/.expo/
+**/*.tgz
+example/expo-example/android/
+example/expo-example/ios/

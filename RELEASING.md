@@ -184,6 +184,35 @@ both platforms again. For future releases, update the Flutter package version,
 CHANGELOG, and native dependency versions together as appropriate.
 
 
+## Expo / npm
+
+The Expo package is under `expo/`, with npm name `@notification.dev/expo`.
+It contains the Expo bridge and config plugin only. Android resolves the released
+Maven SDK; iOS resolves the remote Swift package and checksum-verified core.
+Keep the native version pins in `expo/android/build.gradle`,
+`expo/ios/ExpoNotificationDev.podspec`, and `expo/plugin/with_spm.rb` aligned.
+Publish the native releases before publishing an Expo wrapper that needs them.
+
+From `expo/`, run:
+
+```sh
+npm ci
+npm test
+ruby test/spm_test.rb
+npm pack --dry-run
+npm pack
+```
+
+Inspect the tarball: no native SDK implementation, XCFrameworks, AARs, local
+configuration, or credentials may be included. Install that tarball into a clean
+Expo app, run prebuild, and build Android plus iOS simulator/device destinations
+using released dependencies. Repeat prebuild and pod installation to check
+idempotency. Run the example's device checks with configured FCM/APNs providers.
+
+Confirm npm scope ownership and package name availability. After verification
+and approval to publish, run `npm publish --access public` from `expo/`.
+Never replace a published version; bump the wrapper version for corrections.
+
 ## Coordinated 0.2.0 release
 
 This release replaces the old local-HTTP flag with `allowHttp` (Swift:

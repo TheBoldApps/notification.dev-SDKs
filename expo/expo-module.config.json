@@ -1,0 +1,8 @@
+{
+  "platforms": ["ios", "android"],
+  "apple": {
+    "modules": ["NotificationDevModule"],
+    "appDelegateSubscribers": ["NotificationDevAppDelegateSubscriber"]
+  },
+  "android": {"modules": ["dev.notification.expo.NotificationDevModule"]}
+}
