@@ -179,4 +179,53 @@ replay before acknowledgment, and no replay after successful acknowledgment.
 See the [integration checks](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/expo.md#verify-the-integration)
 for permission, registration, and offline checks.
 
+## Publish a release (maintainers)
+
+Releases are published manually to npm. There is no CI publishing job. You need
+an npm account with permission to publish under `@notification.dev` and 2FA
+enabled. npm scope access is separate from GitHub organization access.
+
+From this repository's `expo/` directory, prepare and inspect the package:
+
+```sh
+npm ci
+npm test
+ruby test/spm_test.rb
+npm pack --dry-run
+npm pack
+```
+
+The Ruby check requires the `xcodeproj` gem. `npm pack` runs the TypeScript build
+through `prepack`. For version `0.2.0`, it produces
+`notification.dev-expo-0.2.0.tgz`. Check that the tarball contains the compiled
+JavaScript/types, bridge sources, config plugin, module configuration, and
+documentation/licenses, without credentials, generated native projects, or
+native SDK binaries.
+
+Install the tarball by absolute path in a separate clean Expo 57 app. Configure
+the plugin and build Android and iOS using the released native SDKs; see the
+[example's build and device checks](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/example/expo-example/README.md#build-verification).
+Verify registration, delivery, and notification taps on configured devices.
+Commit and push the tested release sources before publishing.
+
+Authenticate and publish the same tarball you tested:
+
+```sh
+npm login --registry=https://registry.npmjs.org/
+npm whoami --registry=https://registry.npmjs.org/
+npm publish ./notification.dev-expo-0.2.0.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+npm view @notification.dev/expo@0.2.0 version dist.integrity --registry=https://registry.npmjs.org/
+npm view @notification.dev/expo dist-tags --registry=https://registry.npmjs.org/
+```
+
+Complete npm's authentication prompts. `--access public` makes the scoped package
+public; see [npm's publishing guide](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
+If that name/version already exists, stop: npm versions cannot be reused.
+For future releases, update the package version and substitute the new version
+in the tarball name and verification commands. Confirm native dependency pins
+still reference available, compatible releases.
+
+Finally, run `npx expo install @notification.dev/expo@0.2.0` in a clean Expo 57
+app and repeat native builds to verify installation from the registry.
+
 Copyright 2026 The Bold Apps, LLC. Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE).
