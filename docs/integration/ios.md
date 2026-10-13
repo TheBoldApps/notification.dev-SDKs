@@ -6,7 +6,7 @@ UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard; MCP does not configure provider credentials.
 
 Canonical source: [this guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/ios.md).
-The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/ios/README.md) also covers local SDK development.
+The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/ios/README.md) covers released installation and usage.
 
 Swift API for iOS 15+, using direct APNs. Installing a published release requires Xcode; the Kotlin core is supplied as a precompiled XCFramework. Supports devices and Apple Silicon simulators; CocoaPods and Intel simulators are unsupported.
 
@@ -63,9 +63,60 @@ Call Apple's completion handlers exactly once. A `nil` presentation result means
 
 Request permission with `requestPushPermission(settingsFallback: true)`; inspect `getPushPermissionStatus()`. Settings opening does not confirm permission. APNs token registration runs automatically.
 
-Collect `pendingOpens`, navigate, then `try await sdk.acknowledgeOpen(open.interactionId)`. Foreground display can be disabled with `displayInForeground: false`.
+Foreground display can be disabled with `displayInForeground: false`.
 
 Background alerts may appear before SDK checks run. Receipts cover SDK-observed messages; APNs acceptance does not confirm delivery. Pending sync resumes when iOS next allows execution.
+
+## Handle notification opens
+
+`pendingOpens` is the notification-open callback/stream. It emits a list of
+unacknowledged taps, including taps that launched the app. Subscribe once in your
+app's navigation layer after initialization. `notifications` reports received
+notifications; use `pendingOpens` for taps.
+
+Opens replay until acknowledged. Handle them serially, wait for navigation to be
+ready, and acknowledge only after successful handling. The SDK does not launch
+deep links automatically. `open.notification.deepLink` and
+`open.notification.data` contain your routing information.
+
+```swift
+// After initialization, in your @MainActor navigation owner:
+let opensTask = Task { @MainActor in
+    var navigated = Set<String>()
+    for await pending in sdk.pendingOpens {
+        for open in pending {
+            do {
+                try Task.checkCancellation()
+                if !navigated.contains(open.interactionId) {
+                    try await waitForNavigationReady()
+                    try await navigateFromNotification(open.notification.deepLink, open.notification.data)
+                    navigated.insert(open.interactionId)
+                }
+                try await sdk.acknowledgeOpen(open.interactionId)
+            } catch is CancellationError {
+                return
+            } catch {
+                reportOpenError(error)
+                break
+            }
+        }
+    }
+}
+
+// When the navigation owner stops observing:
+// opensTask.cancel()
+```
+
+Retain the task and cancel it when its owner is disposed. Keep just one active
+open observer, and forward notification responses using `handleResponse(_:)` as
+shown in Permissions and APNs.
+
+The app supplies `waitForNavigationReady`, `navigateFromNotification`, and
+`reportOpenError`; navigation must finish successfully before returning. Route
+only links/data your app supports. The handled-ID set prevents repeated navigation
+when snapshots replay during acknowledgment; retain it for the observer's lifetime.
+On failure, the open remains pending. Retry through your app's retry flow or by
+restarting the observer; a new snapshot is not guaranteed immediately.
 
 ## HTTP development endpoints
 

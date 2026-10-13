@@ -123,20 +123,60 @@ numbers; event properties accept finite JSON. `getState()`, `getTags()`, and
 stop native collectors when the last subscription is removed. The native SDK
 continues working independently of JavaScript reloads and subscriptions.
 
-## Opens and notification ownership
+## Handle notification opens
+
+`pendingOpens` is the notification-open callback/stream. It emits a list of
+unacknowledged taps, including taps that launched the app. Subscribe once in your
+app's navigation layer after initialization. `notifications` reports received
+notifications; use `pendingOpens` for taps.
+
+Opens replay until acknowledged. Handle them serially, wait for navigation to be
+ready, and acknowledge only after successful handling. The SDK does not launch
+deep links automatically. `open.notification.deepLink` and
+`open.notification.data` contain your routing information.
 
 ```ts
+const navigated = new Set<string>();
+let active = true;
+let queue = Promise.resolve();
 const opens = sdk.addListener("pendingOpens", (pending) => {
-  // Send pending opens to your app's serialized navigation queue.
-  // After successful navigation: await sdk.acknowledgeOpen(open.interactionId)
+  queue = queue.then(async () => {
+    for (const open of pending) {
+      if (!active) return;
+      if (!navigated.has(open.interactionId)) {
+        await waitForNavigationReady();
+        if (!active) return;
+        await navigateFromNotification(open.notification.deepLink, open.notification.data);
+        navigated.add(open.interactionId);
+      }
+      await sdk.acknowledgeOpen(open.interactionId);
+    }
+  }).catch((error) => {
+    reportOpenError(error);
+  });
 });
+
+// When the navigation owner unmounts:
+// active = false;
+// opens.remove();
 ```
 
-Opens replay until acknowledged. Deduplicate in-flight navigation by
-`interactionId`; the SDK does not automatically launch deep links. Other methods
-include `logout()`, `removeTags(keys)`, `removeEmail()`, `setEmailOptedIn(enabled)`,
-`getPushPermissionStatus()`, and `openPushSettings()`. Opening settings does not
-confirm permission.
+The promise queue serializes snapshots and catches handling failures. Keep one
+active subscription in your navigation owner and remove it on unmount. Native
+integration forwards tap callbacks automatically.
+
+The app supplies `waitForNavigationReady`, `navigateFromNotification`, and
+`reportOpenError`; navigation must finish successfully before returning. Route
+only links/data your app supports. The handled-ID set prevents repeated navigation
+when snapshots replay during acknowledgment; retain it for the observer's lifetime.
+On failure, the open remains pending. Retry through your app's retry flow or by
+restarting the observer; a new snapshot is not guaranteed immediately.
+
+## Notification ownership
+
+Other methods include `logout()`, `removeTags(keys)`, `removeEmail()`,
+`setEmailOptedIn(enabled)`, `getPushPermissionStatus()`, and `openPushSettings()`.
+Opening settings does not confirm permission.
 
 This version requires exclusive push callback ownership. Do not combine it with
 `expo-notifications`, `@react-native-firebase/messaging`, a custom Firebase service,
@@ -148,17 +188,12 @@ See [shared semantics](https://github.com/TheBoldApps/notification.dev-SDKs/blob
 FCM, without an FCM `notification` block. iOS background alerts can appear before
 SDK checks; pending sync resumes when the OS permits execution.
 
-## Development
+## Verify your integration
 
-```sh
-npm ci
-npm test
-ruby test/spm_test.rb
-npm pack --dry-run
-```
-
-The Ruby test requires the `xcodeproj` gem, included with CocoaPods. See the
-[example](https://github.com/TheBoldApps/notification.dev-SDKs/tree/main/example/expo-example) for native builds and device checks.
-Native version overrides and local SDK substitutions are not provided.
+On a device with matching FCM/APNs providers, send a notification and tap it while
+the app is running, backgrounded, and after process termination. Verify navigation,
+replay before acknowledgment, and no replay after successful acknowledgment.
+See the [integration checks](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/expo.md#verify-the-integration)
+for permission, registration, and offline checks.
 
 Copyright 2026 The Bold Apps, LLC. Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE).

@@ -59,7 +59,7 @@ repository root:
 ./gradlew :core:iosSimulatorArm64Test :core:prepareSwiftPackage
 ```
 
-Run the Swift tests using the command in [the iOS guide](ios/README.md#verify),
+Run the Swift tests using the command in [the contributor guide](CONTRIBUTING.md#ios--tests),
 then build the [iOS example](example/ios-example/README.md#build) for an ARM64
 simulator and an iPhone destination. Verify the XCFramework contains both
 `ios-arm64` and `ios-arm64-simulator` slices.

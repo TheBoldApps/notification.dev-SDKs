@@ -6,7 +6,7 @@ UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard; MCP does not configure provider credentials.
 
 Canonical source: [this guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/flutter.md).
-The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/flutter/README.md) also covers local SDK development.
+The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/flutter/README.md) covers released installation and usage.
 
 Android/iOS plugin over the native SDKs. Requires Flutter 3.44+, Dart 3.12+, JDK 17, Android SDK 36, and Swift Package Manager for iOS. Supports Android API 23+, iOS 15+, and Apple Silicon simulators.
 
@@ -75,14 +75,63 @@ Initialization waits for local readiness, not server registration. Automatic int
 
 `getState()`, `getTags()`, and `getEmail()` read local values; `refresh()` fetches server state. Tags accept strings, booleans, and finite numbers; event properties accept JSON. Failures throw `SdkException`. Cancel stream subscriptions when finished.
 
-## Permissions and opens
+## Permissions
 
 ```dart
 await sdk.requestPushPermission(settingsFallback: true);
 final status = await sdk.getPushPermissionStatus();
 ```
 
-Observe `pendingOpens`, serialize navigation in your app, and call `acknowledgeOpen(open.interactionId)` after handling each open. Opens replay until acknowledged. `notifications` and `diagnostics` are live streams without replay; `states` and `pendingOpens` replay current values.
+`notifications` and `diagnostics` are live streams without replay; `states` and
+`pendingOpens` replay current values.
+
+## Handle notification opens
+
+`pendingOpens` is the notification-open callback/stream. It emits a list of
+unacknowledged taps, including taps that launched the app. Subscribe once in your
+app's navigation layer after initialization. `notifications` reports received
+notifications; use `pendingOpens` for taps.
+
+Opens replay until acknowledged. Handle them serially, wait for navigation to be
+ready, and acknowledge only after successful handling. The SDK does not launch
+deep links automatically. `open.notification.deepLink` and
+`open.notification.data` contain your routing information.
+
+```dart
+final navigated = <String>{};
+final opensSubscription = sdk.pendingOpens.asyncMap((pending) async {
+  for (final open in pending) {
+    try {
+      if (!navigated.contains(open.interactionId)) {
+        await waitForNavigationReady();
+        await navigateFromNotification(
+          open.notification.deepLink,
+          open.notification.data,
+        );
+        navigated.add(open.interactionId);
+      }
+      await sdk.acknowledgeOpen(open.interactionId);
+    } catch (error) {
+      reportOpenError(error);
+      break;
+    }
+  }
+}).listen((_) {}, onError: (Object error) => reportOpenError(error));
+
+// When the navigation owner stops observing:
+// await opensSubscription.cancel();
+```
+
+`asyncMap` serializes snapshots; avoid an asynchronous `listen` callback that
+starts overlapping navigation. Keep just one active open subscription and cancel
+it when its owner is disposed. Automatic integration forwards native tap callbacks.
+
+The app supplies `waitForNavigationReady`, `navigateFromNotification`, and
+`reportOpenError`; navigation must finish successfully before returning. Route
+only links/data your app supports. The handled-ID set prevents repeated navigation
+when snapshots replay during acknowledgment; retain it for the observer's lifetime.
+On failure, the open remains pending. Retry through your app's retry flow or by
+restarting the observer; a new snapshot is not guaranteed immediately.
 
 ## Manual integration
 

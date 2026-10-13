@@ -6,7 +6,7 @@ UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard; MCP does not configure provider credentials.
 
 Canonical source: [this guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/android.md).
-The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/android/README.md) also covers local SDK development.
+The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/android/README.md) covers released installation and usage.
 
 Requires Android API 23+, JDK 17, and Android SDK 36.
 
@@ -84,6 +84,54 @@ If your app owns the Firebase service, remove the SDK service in your manifest:
 Declare `xmlns:tools="http://schemas.android.com/tools"` on the manifest. Forward `onNewToken` to `NotificationDev.onNewToken(token)` and `onMessageReceived` to `NotificationDev.handleRemoteMessage(message)`; finish local persistence before returning, using `runBlocking` in those service callbacks. Only one service may own `MESSAGING_EVENT`.
 
 See the [runnable example](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/example/android-example/README.md) for host setup and device checks.
+
+## Handle notification opens
+
+`pendingOpens` is the notification-open callback/stream. It emits a list of
+unacknowledged taps, including taps that launched the app. Subscribe once in your
+app's navigation layer after initialization. `notifications` reports received
+notifications; use `pendingOpens` for taps.
+
+Opens replay until acknowledged. Handle them serially, wait for navigation to be
+ready, and acknowledge only after successful handling. The SDK does not launch
+deep links automatically. `open.notification.deepLink` and
+`open.notification.data` contain your routing information.
+
+```kotlin
+// In your launcher Activity, after creating the navigation UI:
+val navigated = mutableSetOf<String>()
+val opensJob = lifecycleScope.launch {
+    NotificationDev.pendingOpens.collect { pending ->
+        for (open in pending) {
+            try {
+                if (open.interactionId !in navigated) {
+                    waitForNavigationReady()
+                    navigateFromNotification(open.notification.deepLink, open.notification.data)
+                    navigated.add(open.interactionId)
+                }
+                NotificationDev.acknowledgeOpen(open.interactionId)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                reportOpenError(error)
+                break
+            }
+        }
+    }
+}
+```
+
+Import `androidx.lifecycle.lifecycleScope`, `kotlinx.coroutines.launch`, and
+`kotlinx.coroutines.flow.collect`.
+The job is canceled when the Activity is destroyed; call `opensJob.cancel()` if
+you stop observing sooner. Keep just one active open collector.
+
+The app supplies `waitForNavigationReady`, `navigateFromNotification`, and
+`reportOpenError`; navigation must finish successfully before returning. Route
+only links/data your app supports. The handled-ID set prevents repeated navigation
+when snapshots replay during acknowledgment; retain it for the observer's lifetime.
+On failure, the open remains pending. Retry through your app's retry flow or by
+restarting the observer; a new snapshot is not guaranteed immediately.
 
 ## HTTP development endpoints
 

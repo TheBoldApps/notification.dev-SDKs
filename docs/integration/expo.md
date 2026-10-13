@@ -6,7 +6,7 @@ UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard; MCP does not configure provider credentials.
 
 Canonical source: [this guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/expo.md).
-The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/expo/README.md) also covers local SDK development.
+The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/expo/README.md) covers released installation and usage.
 
 TypeScript API over the **released** notification.dev native SDKs. Android uses
 `dev.notification:android-sdk:0.2.0` from Maven Central. iOS uses the remote
@@ -118,20 +118,60 @@ numbers; event properties accept finite JSON. `getState()`, `getTags()`, and
 stop native collectors when the last subscription is removed. The native SDK
 continues working independently of JavaScript reloads and subscriptions.
 
-## Opens and notification ownership
+## Handle notification opens
+
+`pendingOpens` is the notification-open callback/stream. It emits a list of
+unacknowledged taps, including taps that launched the app. Subscribe once in your
+app's navigation layer after initialization. `notifications` reports received
+notifications; use `pendingOpens` for taps.
+
+Opens replay until acknowledged. Handle them serially, wait for navigation to be
+ready, and acknowledge only after successful handling. The SDK does not launch
+deep links automatically. `open.notification.deepLink` and
+`open.notification.data` contain your routing information.
 
 ```ts
+const navigated = new Set<string>();
+let active = true;
+let queue = Promise.resolve();
 const opens = sdk.addListener("pendingOpens", (pending) => {
-  // Send pending opens to your app's serialized navigation queue.
-  // After successful navigation: await sdk.acknowledgeOpen(open.interactionId)
+  queue = queue.then(async () => {
+    for (const open of pending) {
+      if (!active) return;
+      if (!navigated.has(open.interactionId)) {
+        await waitForNavigationReady();
+        if (!active) return;
+        await navigateFromNotification(open.notification.deepLink, open.notification.data);
+        navigated.add(open.interactionId);
+      }
+      await sdk.acknowledgeOpen(open.interactionId);
+    }
+  }).catch((error) => {
+    reportOpenError(error);
+  });
 });
+
+// When the navigation owner unmounts:
+// active = false;
+// opens.remove();
 ```
 
-Opens replay until acknowledged. Deduplicate in-flight navigation by
-`interactionId`; the SDK does not automatically launch deep links. Other methods
-include `logout()`, `removeTags(keys)`, `removeEmail()`, `setEmailOptedIn(enabled)`,
-`getPushPermissionStatus()`, and `openPushSettings()`. Opening settings does not
-confirm permission.
+The promise queue serializes snapshots and catches handling failures. Keep one
+active subscription in your navigation owner and remove it on unmount. Native
+integration forwards tap callbacks automatically.
+
+The app supplies `waitForNavigationReady`, `navigateFromNotification`, and
+`reportOpenError`; navigation must finish successfully before returning. Route
+only links/data your app supports. The handled-ID set prevents repeated navigation
+when snapshots replay during acknowledgment; retain it for the observer's lifetime.
+On failure, the open remains pending. Retry through your app's retry flow or by
+restarting the observer; a new snapshot is not guaranteed immediately.
+
+## Notification ownership
+
+Other methods include `logout()`, `removeTags(keys)`, `removeEmail()`,
+`setEmailOptedIn(enabled)`, `getPushPermissionStatus()`, and `openPushSettings()`.
+Opening settings does not confirm permission.
 
 This version requires exclusive push callback ownership. Do not combine it with
 `expo-notifications`, `@react-native-firebase/messaging`, a custom Firebase service,

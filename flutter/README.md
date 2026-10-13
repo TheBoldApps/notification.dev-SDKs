@@ -26,16 +26,6 @@ Run `flutter pub get`. Android downloads the native SDK from Maven Central; iOS 
 
 Enable Swift Package Manager for iOS with `flutter config --enable-swift-package-manager`.
 
-## Develop with a local Flutter checkout
-
-```yaml
-dependencies:
-  notification_dev:
-    path: /path/to/notification.dev-SDKs/flutter
-```
-
-This uses local Flutter bridge code with the released native SDKs. To develop native Android code too, add the [Android composite build](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/android/README.md#install-locally) to your app's `android/settings.gradle.kts`.
-
 ## Host setup
 
 - Android: configure Firebase and the Google Services plugin. Add a monochrome `ic_notification` drawable and retain it during resource shrinking, as in the example. Default integration cannot be combined with `firebase_messaging`.
@@ -67,14 +57,63 @@ Initialization waits for local readiness, not server registration. Automatic int
 
 `getState()`, `getTags()`, and `getEmail()` read local values; `refresh()` fetches server state. Tags accept strings, booleans, and finite numbers; event properties accept JSON. Failures throw `SdkException`. Cancel stream subscriptions when finished.
 
-## Permissions and opens
+## Permissions
 
 ```dart
 await sdk.requestPushPermission(settingsFallback: true);
 final status = await sdk.getPushPermissionStatus();
 ```
 
-Observe `pendingOpens`, serialize navigation in your app, and call `acknowledgeOpen(open.interactionId)` after handling each open. Opens replay until acknowledged. `notifications` and `diagnostics` are live streams without replay; `states` and `pendingOpens` replay current values.
+`notifications` and `diagnostics` are live streams without replay; `states` and
+`pendingOpens` replay current values.
+
+## Handle notification opens
+
+`pendingOpens` is the notification-open callback/stream. It emits a list of
+unacknowledged taps, including taps that launched the app. Subscribe once in your
+app's navigation layer after initialization. `notifications` reports received
+notifications; use `pendingOpens` for taps.
+
+Opens replay until acknowledged. Handle them serially, wait for navigation to be
+ready, and acknowledge only after successful handling. The SDK does not launch
+deep links automatically. `open.notification.deepLink` and
+`open.notification.data` contain your routing information.
+
+```dart
+final navigated = <String>{};
+final opensSubscription = sdk.pendingOpens.asyncMap((pending) async {
+  for (final open in pending) {
+    try {
+      if (!navigated.contains(open.interactionId)) {
+        await waitForNavigationReady();
+        await navigateFromNotification(
+          open.notification.deepLink,
+          open.notification.data,
+        );
+        navigated.add(open.interactionId);
+      }
+      await sdk.acknowledgeOpen(open.interactionId);
+    } catch (error) {
+      reportOpenError(error);
+      break;
+    }
+  }
+}).listen((_) {}, onError: (Object error) => reportOpenError(error));
+
+// When the navigation owner stops observing:
+// await opensSubscription.cancel();
+```
+
+`asyncMap` serializes snapshots; avoid an asynchronous `listen` callback that
+starts overlapping navigation. Keep just one active open subscription and cancel
+it when its owner is disposed. Automatic integration forwards native tap callbacks.
+
+The app supplies `waitForNavigationReady`, `navigateFromNotification`, and
+`reportOpenError`; navigation must finish successfully before returning. Route
+only links/data your app supports. The handled-ID set prevents repeated navigation
+when snapshots replay during acknowledgment; retain it for the observer's lifetime.
+On failure, the open remains pending. Retry through your app's retry flow or by
+restarting the observer; a new snapshot is not guaranteed immediately.
 
 ## Manual integration
 
@@ -82,17 +121,13 @@ For custom callback ownership, set `automaticIntegration: false` from the first 
 
 For custom WorkManager setup, remove `NotificationSdkInitializer` metadata from the AndroidX Startup provider and initialize WorkManager before the SDK. Remove the SDK Firebase service if your host owns FCM. Manual mode does not establish compatibility with other push plugins.
 
-## Verify
+## Verify your integration
 
-From this directory:
-
-```sh
-flutter pub get
-flutter analyze
-flutter test
-```
-
-Run the example's [device checks](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/example/flutter-example/README.md#device-checks) for real push delivery and restart behavior.
+On a device with matching FCM/APNs providers, send a notification and tap it while
+the app is running, backgrounded, and after process termination. Verify navigation,
+replay before acknowledgment, and no replay after successful acknowledgment.
+See the [integration checks](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/flutter.md#verify-the-integration)
+for permission, registration, and offline checks.
 
 ## License
 
@@ -102,10 +137,3 @@ The SDK, examples, and documentation in this repository are licensed under the
 [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.
 Third-party components retain their respective licenses. The hosted notification.dev
 service and its separate backend are not covered by this license.
-
-## HTTP development endpoints
-
-HTTPS is required by default. Explicitly set `allowHttp: true` (Swift:
-`allowHTTP: true`) to permit HTTP to any host, including private LAN IPs. Configure
-Android cleartext policy or iOS App Transport Security in the host app as needed;
-the SDK option does not override OS restrictions.

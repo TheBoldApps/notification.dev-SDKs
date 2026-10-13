@@ -35,20 +35,6 @@ the required notification permissions are included by the SDK.
 Add a monochrome notification drawable and retain it during resource shrinking.
 See the [integration guide](../docs/integration/android.md) for host configuration.
 
-## Install locally
-
-Add the SDK repository to your app's `settings.gradle.kts`:
-
-```kotlin
-includeBuild("/path/to/notification.dev-SDKs") {
-    dependencySubstitution {
-        substitute(module("dev.notification:android-sdk")).using(project(":android"))
-    }
-}
-```
-
-Add `implementation("dev.notification:android-sdk:0.2.0")` to your app dependencies. Configure Firebase with the Google Services plugin and your `google-services.json`. Firebase Messaging is included by the SDK.
-
 ## Initialize and use
 
 Initialize in `Application.onCreate`, including background process startup:
@@ -92,6 +78,62 @@ Declare `xmlns:tools="http://schemas.android.com/tools"` on the manifest. Forwar
 
 See the [runnable example](../example/android-example/README.md) for host setup and device checks.
 
+## Handle notification opens
+
+`pendingOpens` is the notification-open callback/stream. It emits a list of
+unacknowledged taps, including taps that launched the app. Subscribe once in your
+app's navigation layer after initialization. `notifications` reports received
+notifications; use `pendingOpens` for taps.
+
+Opens replay until acknowledged. Handle them serially, wait for navigation to be
+ready, and acknowledge only after successful handling. The SDK does not launch
+deep links automatically. `open.notification.deepLink` and
+`open.notification.data` contain your routing information.
+
+```kotlin
+// In your launcher Activity, after creating the navigation UI:
+val navigated = mutableSetOf<String>()
+val opensJob = lifecycleScope.launch {
+    NotificationDev.pendingOpens.collect { pending ->
+        for (open in pending) {
+            try {
+                if (open.interactionId !in navigated) {
+                    waitForNavigationReady()
+                    navigateFromNotification(open.notification.deepLink, open.notification.data)
+                    navigated.add(open.interactionId)
+                }
+                NotificationDev.acknowledgeOpen(open.interactionId)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                reportOpenError(error)
+                break
+            }
+        }
+    }
+}
+```
+
+Import `androidx.lifecycle.lifecycleScope`, `kotlinx.coroutines.launch`, and
+`kotlinx.coroutines.flow.collect`.
+The job is canceled when the Activity is destroyed; call `opensJob.cancel()` if
+you stop observing sooner. Keep just one active open collector.
+
+The app supplies `waitForNavigationReady`, `navigateFromNotification`, and
+`reportOpenError`; navigation must finish successfully before returning. Route
+only links/data your app supports. The handled-ID set prevents repeated navigation
+when snapshots replay during acknowledgment; retain it for the observer's lifetime.
+On failure, the open remains pending. Retry through your app's retry flow or by
+restarting the observer; a new snapshot is not guaranteed immediately.
+
+## Verify your integration
+
+On a device with matching FCM/APNs providers, send a notification and tap it while
+the app is running, backgrounded, and after process termination. Verify navigation,
+replay before acknowledgment, and no replay after successful acknowledgment.
+See the [integration checks](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/android.md#verify-the-integration)
+for permission, registration, and offline checks.
+
 ## License
 
 Copyright 2026 [The Bold Apps, LLC](https://theboldapps.com/).
@@ -100,10 +142,3 @@ The SDK, examples, and documentation in this repository are licensed under the
 [Apache License, Version 2.0](../LICENSE). See [NOTICE](../NOTICE) for attribution.
 Third-party components retain their respective licenses. The hosted notification.dev
 service and its separate backend are not covered by this license.
-
-## HTTP development endpoints
-
-HTTPS is required by default. Explicitly set `allowHttp: true` (Swift:
-`allowHTTP: true`) to permit HTTP to any host, including private LAN IPs. Configure
-Android cleartext policy or iOS App Transport Security in the host app as needed;
-the SDK option does not override OS restrictions.
