@@ -2,6 +2,39 @@
 
 Requires Android API 23+, JDK 17, and Android SDK 36.
 
+## Integrate with an AI agent
+
+Connect an MCP client using Streamable HTTP to
+`https://app.notification.dev/mcp` and complete the OAuth sign-in and consent flow.
+Ask: “Use `get_sdk_integration_guide` with `platform: "android"` and integrate
+notification.dev into this app.” The tool supports `android`, `ios`, `flutter`,
+and `expo`; retrieving a guide requires no additional connection permissions.
+
+The [integration guides](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/android.md) cover configuration, usage, troubleshooting,
+and device verification. This README remains usable without MCP. Agents use OAuth;
+mobile apps initialize with the public project UUID, not the agent token or a
+server API key.
+
+## Install from Maven Central
+
+Include `google()` and `mavenCentral()` in your app's dependency repositories,
+then add to the app module:
+
+```kotlin
+dependencies {
+    implementation("dev.notification:android-sdk:0.2.0")
+}
+```
+
+Configure the Google Services Gradle plugin and place the Firebase Android client
+configuration in `app/google-services.json`. Its package name must match your
+application ID. Configure an FCM provider in notification.dev for the same Firebase
+project; service-account credentials stay on the server. Firebase Messaging and
+the required notification permissions are included by the SDK.
+
+Add a monochrome notification drawable and retain it during resource shrinking.
+See the [integration guide](../docs/integration/android.md) for host configuration.
+
 ## Install locally
 
 Add the SDK repository to your app's `settings.gradle.kts`:
@@ -73,5 +106,4 @@ service and its separate backend are not covered by this license.
 HTTPS is required by default. Explicitly set `allowHttp: true` (Swift:
 `allowHTTP: true`) to permit HTTP to any host, including private LAN IPs. Configure
 Android cleartext policy or iOS App Transport Security in the host app as needed;
-the SDK option does not override OS restrictions. The 0.2.0 flag replaces the
-previous API without compatibility aliases or startup configuration migration.
+the SDK option does not override OS restrictions.

@@ -14,6 +14,19 @@ modules and equivalent native configuration.
 The plugin selects Kotlin `2.3.20` to match the released native SDK. Remove
 conflicting Kotlin overrides before prebuild.
 
+## Integrate with an AI agent
+
+Connect an MCP client using Streamable HTTP to
+`https://app.notification.dev/mcp` and complete the OAuth sign-in and consent flow.
+Ask: “Use `get_sdk_integration_guide` with `platform: "expo"` and integrate
+notification.dev into this app.” The tool supports `android`, `ios`, `flutter`,
+and `expo`; retrieving a guide requires no additional connection permissions.
+
+The [integration guides](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/expo.md) cover configuration, usage, troubleshooting,
+and device verification. This README remains usable without MCP. Agents use OAuth;
+mobile apps initialize with the public project UUID, not the agent token or a
+server API key.
+
 ## Install and configure
 
 ```sh
@@ -31,9 +44,14 @@ Add the plugin and Android Firebase configuration to `app.json`:
       "package": "com.example.app",
       "googleServicesFile": "./google-services.json"
     },
-    "plugins": [["@notification.dev/expo", {
-      "projectId": "YOUR_PUBLIC_PROJECT_UUID"
-    }]]
+    "plugins": [
+      [
+        "@notification.dev/expo",
+        {
+          "projectId": "YOUR_PUBLIC_PROJECT_UUID"
+        }
+      ]
+    ]
   }
 }
 ```
@@ -55,16 +73,16 @@ After changing native dependencies or plugin configuration, regenerate with
 `npx expo prebuild --clean` and rebuild. Clean prebuild removes handwritten edits
 in generated native directories; keep customizations in plugins.
 
-| Plugin option | Default | Meaning |
-| --- | --- | --- |
-| `projectId` | Required | Public project UUID |
-| `baseUrl` | `https://app.notification.dev/` | API base URL |
-| `androidIcon` | Built-in bell | Monochrome transparent PNG path |
-| `androidChannelId` | `notification_dev` | Notification channel ID |
-| `androidChannelName` | `Notifications` | Channel display name |
-| `displayInForeground` | `true` | Show eligible foreground notifications |
-| `loggingEnabled` | `false` | Sanitized native logging |
-| `allowHttp` | `false` | Allow HTTP and configure OS transport exceptions |
+| Plugin option         | Default                         | Meaning                                          |
+| --------------------- | ------------------------------- | ------------------------------------------------ |
+| `projectId`           | Required                        | Public project UUID                              |
+| `baseUrl`             | `https://app.notification.dev/` | API base URL                                     |
+| `androidIcon`         | Built-in bell                   | Monochrome transparent PNG path                  |
+| `androidChannelId`    | `notification_dev`              | Notification channel ID                          |
+| `androidChannelName`  | `Notifications`                 | Channel display name                             |
+| `displayInForeground` | `true`                          | Show eligible foreground notifications           |
+| `loggingEnabled`      | `false`                         | Sanitized native logging                         |
+| `allowHttp`           | `false`                         | Allow HTTP and configure OS transport exceptions |
 
 Configuration is baked into the native app and applies on every process startup,
 before JavaScript, including background Firebase startup. Change it with a new
@@ -74,16 +92,18 @@ app data when changing projects or API hosts.
 ## Use
 
 ```ts
-import { NotificationDev } from '@notification.dev/expo';
+import { NotificationDev } from "@notification.dev/expo";
 
 const sdk = await NotificationDev.initialize();
-const states = sdk.addListener('states', state => console.log(state));
-const errors = sdk.addListener('diagnostics', error => console.log(error.code));
-await sdk.login('opaque-customer-id');
-await sdk.setTags({ plan: 'premium', paid: true });
-await sdk.setEmail('customer@example.com', true);
+const states = sdk.addListener("states", (state) => console.log(state));
+const errors = sdk.addListener("diagnostics", (error) =>
+  console.log(error.code),
+);
+await sdk.login("opaque-customer-id");
+await sdk.setTags({ plan: "premium", paid: true });
+await sdk.setEmail("customer@example.com", true);
 await sdk.setPushOptedIn(true);
-await sdk.track('checkout', { total: 42 });
+await sdk.track("checkout", { total: 42 });
 
 // Call from an explicit user action:
 await sdk.requestPushPermission();
@@ -106,7 +126,7 @@ continues working independently of JavaScript reloads and subscriptions.
 ## Opens and notification ownership
 
 ```ts
-const opens = sdk.addListener('pendingOpens', pending => {
+const opens = sdk.addListener("pendingOpens", (pending) => {
   // Send pending opens to your app's serialized navigation queue.
   // After successful navigation: await sdk.acknowledgeOpen(open.interactionId)
 });

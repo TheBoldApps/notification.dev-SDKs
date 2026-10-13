@@ -2,6 +2,19 @@
 
 Android/iOS plugin over the native SDKs. Requires Flutter 3.44+, Dart 3.12+, JDK 17, Android SDK 36, and Swift Package Manager for iOS. Supports Android API 23+, iOS 15+, and Apple Silicon simulators.
 
+## Integrate with an AI agent
+
+Connect an MCP client using Streamable HTTP to
+`https://app.notification.dev/mcp` and complete the OAuth sign-in and consent flow.
+Ask: “Use `get_sdk_integration_guide` with `platform: "flutter"` and integrate
+notification.dev into this app.” The tool supports `android`, `ios`, `flutter`,
+and `expo`; retrieving a guide requires no additional connection permissions.
+
+The [integration guides](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/flutter.md) cover configuration, usage, troubleshooting,
+and device verification. This README remains usable without MCP. Agents use OAuth;
+mobile apps initialize with the public project UUID, not the agent token or a
+server API key.
+
 ## Install
 
 ```yaml
@@ -95,5 +108,4 @@ service and its separate backend are not covered by this license.
 HTTPS is required by default. Explicitly set `allowHttp: true` (Swift:
 `allowHTTP: true`) to permit HTTP to any host, including private LAN IPs. Configure
 Android cleartext policy or iOS App Transport Security in the host app as needed;
-the SDK option does not override OS restrictions. The 0.2.0 flag replaces the
-previous API without compatibility aliases or startup configuration migration.
+the SDK option does not override OS restrictions.

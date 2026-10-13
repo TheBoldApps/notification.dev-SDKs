@@ -2,6 +2,19 @@
 
 Swift API for iOS 15+, using direct APNs. Installing a published release requires Xcode; the Kotlin core is supplied as a precompiled XCFramework. Supports devices and Apple Silicon simulators; CocoaPods and Intel simulators are unsupported.
 
+## Integrate with an AI agent
+
+Connect an MCP client using Streamable HTTP to
+`https://app.notification.dev/mcp` and complete the OAuth sign-in and consent flow.
+Ask: “Use `get_sdk_integration_guide` with `platform: "ios"` and integrate
+notification.dev into this app.” The tool supports `android`, `ios`, `flutter`,
+and `expo`; retrieving a guide requires no additional connection permissions.
+
+The [integration guides](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/ios.md) cover configuration, usage, troubleshooting,
+and device verification. This README remains usable without MCP. Agents use OAuth;
+mobile apps initialize with the public project UUID, not the agent token or a
+server API key.
+
 ## Install with Swift Package Manager
 
 In Xcode, choose **File > Add Package Dependencies**, enter
@@ -58,12 +71,12 @@ Enable Push Notifications and configure signing plus a server APNs provider matc
 
 Await startup and forward these delegate callbacks on the main actor:
 
-| Callback | SDK method |
-| --- | --- |
-| APNs token | `didRegisterForRemoteNotifications(deviceToken:)` |
-| APNs registration failure | `didFailToRegisterForRemoteNotifications()` |
-| Foreground notification | `presentationOptions(for:)` |
-| Notification response | `handleResponse(_:)` |
+| Callback                  | SDK method                                        |
+| ------------------------- | ------------------------------------------------- |
+| APNs token                | `didRegisterForRemoteNotifications(deviceToken:)` |
+| APNs registration failure | `didFailToRegisterForRemoteNotifications()`       |
+| Foreground notification   | `presentationOptions(for:)`                       |
+| Notification response     | `handleResponse(_:)`                              |
 
 Call Apple's completion handlers exactly once. A `nil` presentation result means another provider's notification; empty options suppress an owned notification. The [SwiftUI example](../example/ios-example/README.md) shows complete forwarding.
 
@@ -97,5 +110,4 @@ service and its separate backend are not covered by this license.
 HTTPS is required by default. Explicitly set `allowHttp: true` (Swift:
 `allowHTTP: true`) to permit HTTP to any host, including private LAN IPs. Configure
 Android cleartext policy or iOS App Transport Security in the host app as needed;
-the SDK option does not override OS restrictions. The 0.2.0 flag replaces the
-previous API without compatibility aliases or startup configuration migration.
+the SDK option does not override OS restrictions.
