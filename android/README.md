@@ -80,51 +80,35 @@ See the [runnable example](../example/android-example/README.md) for host setup 
 
 ## Handle notification opens
 
-`pendingOpens` is the notification-open callback/stream. It emits a list of
-unacknowledged taps, including taps that launched the app. Subscribe once in your
-app's navigation layer after initialization. `notifications` reports received
-notifications; use `pendingOpens` for taps.
-
-Opens replay until acknowledged. Handle them serially, wait for navigation to be
-ready, and acknowledge only after successful handling. The SDK does not launch
-deep links automatically. `open.notification.deepLink` and
-`open.notification.data` contain your routing information.
+`pendingOpens` emits unacknowledged notification taps, including the tap that
+launched the app. Subscribe once after your navigation UI is ready, route the
+notification, then acknowledge it. `notifications` reports received notifications;
+use `pendingOpens` for taps. The SDK does not launch deep links automatically.
 
 ```kotlin
-// In your launcher Activity, after creating the navigation UI:
-val navigated = mutableSetOf<String>()
 val opensJob = lifecycleScope.launch {
     NotificationDev.pendingOpens.collect { pending ->
         for (open in pending) {
-            try {
-                if (open.interactionId !in navigated) {
-                    waitForNavigationReady()
-                    navigateFromNotification(open.notification.deepLink, open.notification.data)
-                    navigated.add(open.interactionId)
-                }
-                NotificationDev.acknowledgeOpen(open.interactionId)
-            } catch (cancelled: kotlinx.coroutines.CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                reportOpenError(error)
-                break
-            }
+            navigateFromNotification(open.notification.deepLink, open.notification.data)
+            NotificationDev.acknowledgeOpen(open.interactionId)
         }
     }
 }
 ```
 
 Import `androidx.lifecycle.lifecycleScope`, `kotlinx.coroutines.launch`, and
-`kotlinx.coroutines.flow.collect`.
-The job is canceled when the Activity is destroyed; call `opensJob.cancel()` if
-you stop observing sooner. Keep just one active open collector.
+`kotlinx.coroutines.flow.collect`. Collection is serial, and the job is canceled
+when the Activity is destroyed. Call `opensJob.cancel()` to stop observing sooner.
+Handle failures through your app's coroutine error handler; an uncaught failure
+ends collection.
 
-The app supplies `waitForNavigationReady`, `navigateFromNotification`, and
-`reportOpenError`; navigation must finish successfully before returning. Route
-only links/data your app supports. The handled-ID set prevents repeated navigation
-when snapshots replay during acknowledgment; retain it for the observer's lifetime.
-On failure, the open remains pending. Retry through your app's retry flow or by
-restarting the observer; a new snapshot is not guaranteed immediately.
+The app supplies `navigateFromNotification`. Navigation must complete before
+acknowledgment. Route only links/data your app supports.
+Snapshots can include the same open more than once, even while acknowledgment is
+in progress, so routing should safely select an already-open destination. For
+non-repeatable actions, deduplicate by `interactionId` in your routing layer.
+If handling fails, the open stays pending; retry through your app's retry flow or
+restart the observer. A new snapshot is not guaranteed immediately.
 
 ## Verify your integration
 

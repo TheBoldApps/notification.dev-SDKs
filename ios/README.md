@@ -74,54 +74,35 @@ Background alerts may appear before SDK checks run. Receipts cover SDK-observed 
 
 ## Handle notification opens
 
-`pendingOpens` is the notification-open callback/stream. It emits a list of
-unacknowledged taps, including taps that launched the app. Subscribe once in your
-app's navigation layer after initialization. `notifications` reports received
-notifications; use `pendingOpens` for taps.
-
-Opens replay until acknowledged. Handle them serially, wait for navigation to be
-ready, and acknowledge only after successful handling. The SDK does not launch
-deep links automatically. `open.notification.deepLink` and
-`open.notification.data` contain your routing information.
+`pendingOpens` emits unacknowledged notification taps, including the tap that
+launched the app. Subscribe once after your navigation UI is ready, route the
+notification, then acknowledge it. `notifications` reports received notifications;
+use `pendingOpens` for taps. The SDK does not launch deep links automatically.
 
 ```swift
-// After initialization, in your @MainActor navigation owner:
 let opensTask = Task { @MainActor in
-    var navigated = Set<String>()
     for await pending in sdk.pendingOpens {
         for open in pending {
-            do {
-                try Task.checkCancellation()
-                if !navigated.contains(open.interactionId) {
-                    try await waitForNavigationReady()
-                    try await navigateFromNotification(open.notification.deepLink, open.notification.data)
-                    navigated.insert(open.interactionId)
-                }
-                try await sdk.acknowledgeOpen(open.interactionId)
-            } catch is CancellationError {
-                return
-            } catch {
-                reportOpenError(error)
-                break
-            }
+            try Task.checkCancellation()
+            try await navigateFromNotification(open.notification.deepLink, open.notification.data)
+            try await sdk.acknowledgeOpen(open.interactionId)
         }
     }
 }
-
-// When the navigation owner stops observing:
-// opensTask.cancel()
 ```
 
-Retain the task and cancel it when its owner is disposed. Keep just one active
-open observer, and forward notification responses using `handleResponse(_:)` as
-shown in Permissions and APNs.
+The task handles opens serially. Retain it, observe errors through
+`opensTask.value`, and call `opensTask.cancel()` when the navigation owner is
+disposed. A thrown error ends the task. Forward notification responses using
+`handleResponse(_:)` as shown in Permissions and APNs.
 
-The app supplies `waitForNavigationReady`, `navigateFromNotification`, and
-`reportOpenError`; navigation must finish successfully before returning. Route
-only links/data your app supports. The handled-ID set prevents repeated navigation
-when snapshots replay during acknowledgment; retain it for the observer's lifetime.
-On failure, the open remains pending. Retry through your app's retry flow or by
-restarting the observer; a new snapshot is not guaranteed immediately.
+The app supplies `navigateFromNotification`. Navigation must complete before
+acknowledgment. Route only links/data your app supports.
+Snapshots can include the same open more than once, even while acknowledgment is
+in progress, so routing should safely select an already-open destination. For
+non-repeatable actions, deduplicate by `interactionId` in your routing layer.
+If handling fails, the open stays pending; retry through your app's retry flow or
+restart the observer. A new snapshot is not guaranteed immediately.
 
 ## Verify your integration
 
