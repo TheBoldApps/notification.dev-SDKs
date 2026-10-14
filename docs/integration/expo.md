@@ -3,7 +3,9 @@
 This guide targets SDK release `0.2.0`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
-providers in the dashboard; MCP does not configure provider credentials.
+providers in the dashboard or use the `push-provider-setup` skill with MCP
+provider tools. MCP provider setup requires `credentials:manage` and owner/admin
+access. Provider secrets stay on the server.
 
 Canonical source: [this guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/expo.md).
 The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/expo/README.md) covers released installation and usage.
