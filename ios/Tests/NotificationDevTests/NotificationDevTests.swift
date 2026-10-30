@@ -80,8 +80,10 @@ final class BridgeTests: XCTestCase {
     private var diagnostics: [String] = []
     private var clears = 0
 
-    private func bridge(loadFailure: Bool = false, saveFailure: Bool = false,
-                        baseURL: String = "https://example.com", allowHttp: Bool = false) throws -> IosBridge {
+    private func bridge(
+        loadFailure: Bool = false, saveFailure: Bool = false,
+        baseURL: String = "https://example.com", allowHttp: Bool = false
+    ) throws -> IosBridge {
         try IosBridge(
             projectId: "project", baseUrl: baseURL, allowHttp: allowHttp,
             loggingEnabled: false, appVersion: "1", osVersion: "15", locale: "en", timezone: "UTC",
@@ -180,6 +182,43 @@ final class BridgeTests: XCTestCase {
         XCTAssertEqual(try state(client).pushRegistration.status, "registered")
         XCTAssertNil(try state(client).pushRegistration.errorCode)
         XCTAssertEqual(NotificationDev.hexToken(Data([0, 255, 16])), "00ff10")
+    }
+
+    func testLiveActivityBridgePersistsRegistrationAndExit() async throws {
+        let initial = try bridge()
+        try await call(initial, "start")
+        initial.close()
+        var stored = try JSONSerialization.jsonObject(with: Data(saved!.utf8)) as! [String: Any]
+        stored["snapshot"] = [
+            "installationId": stored["installationId"]!, "associationId": "association",
+            "user": ["id": "user"], "revision": 1, "updatedAt": "2026-01-01T00:00:00Z",
+        ]
+        saved = String(decoding: try JSONSerialization.data(withJSONObject: stored), as: UTF8.self)
+        let client = try bridge()
+        defer { client.close() }
+        try await call(client, "start")
+        try await call(client, "liveActivityBind", "{\"activityId\":\"order-1\"}")
+        let args: [String: JSONValue] = [
+            "kind": .string("enter"), "target": .string("order-1"),
+            "body": .object(["token": .string("00ff"), "registrationToken": .string(String(repeating: "g", count: 43))]
+            ),
+        ]
+        let encoded = String(decoding: try JSONEncoder().encode(args), as: UTF8.self)
+        try await call(client, "liveActivity", encoded)
+        XCTAssertTrue(try state(client).hasPendingChanges)
+        let snapshot = try JSONSerialization.jsonObject(with: Data(saved!.utf8)) as! [String: Any]
+        let live = snapshot["liveActivities"] as! [String: Any]
+        let pending = live["requests"] as! [[String: Any]]
+        XCTAssertEqual(pending.count, 1)
+        XCTAssertEqual(pending[0]["associationId"] as? String, "association")
+        XCTAssertNotNil(pending[0]["id"] as? String)
+        try await call(client, "liveActivity", "{\"kind\":\"exit\",\"target\":\"order-1\",\"body\":{}}")
+        do {
+            try await call(client, "liveActivity", encoded)
+            XCTFail("Exited activity must not re-register")
+        } catch let error as SdkError {
+            XCTAssertEqual(error.code, "STALE_LIVE_ACTIVITY")
+        }
     }
 
     func testCancellationBeforeReadinessCompletesOnce() async throws {

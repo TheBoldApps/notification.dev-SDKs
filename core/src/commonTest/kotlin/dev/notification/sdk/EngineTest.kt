@@ -43,6 +43,16 @@ internal class FakeTransport : Transport {
     val pushes = mutableListOf<PushRequest>()
     val userResponses = mutableMapOf<String, ServerState>()
     val identityResponses = mutableMapOf<String, ServerState>()
+    val liveActivities = mutableListOf<LiveActivityRequest>()
+    var liveActivityFailure: TransportException? = null
+    var afterLiveActivity: suspend () -> Unit = {}
+
+    override suspend fun liveActivity(id: String, credential: String, request: LiveActivityRequest) {
+        liveActivities.add(request)
+        liveActivityFailure?.let { throw it }
+        afterLiveActivity()
+    }
+
     var reads = 0
 
     override suspend fun register(id: String, secret: String): Registration {

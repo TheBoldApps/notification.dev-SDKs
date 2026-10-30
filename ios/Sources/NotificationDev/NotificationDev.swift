@@ -7,6 +7,14 @@ import UserNotifications
 @MainActor
 public final class NotificationDev {
     public private(set) static var shared: NotificationDev?
+    public lazy var liveActivities: LiveActivities = LiveActivities(
+        perform: { [weak self] method, args in
+            guard let self else { throw CancellationError() }
+            try await self.perform(method, args)
+        },
+        states: { [weak self] in self?.states ?? AsyncStream { $0.finish() } },
+        report: { [weak self] error in self?.report(error) }
+    )
     public let config: SdkConfig
     private var bridge: IosBridge!
     private var initialization: Task<Void, Error>?

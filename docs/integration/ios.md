@@ -245,3 +245,21 @@ Use a disposable project and a signed app on a device with matching providers:
 
 Copyright 2026 The Bold Apps, LLC. Licensed under
 [Apache-2.0](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/LICENSE).
+
+## Live Activities
+
+For SDK versions containing Live Activities, follow the
+[Live Activities guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/ios/LIVE_ACTIVITIES.md).
+Use `sdk.liveActivities.setup(Attributes.self, providerConfigurationId:)` or
+`setupDefault(providerConfigurationId:)` at every launch. The app links
+`NotificationDev`; its widget links only `NotificationDevActivityKit`.
+Set `NSSupportsLiveActivities` in the main app. Local starts require iOS 16.1+
+and a registration grant from the customer's authenticated backend; remote starts
+require iOS 17.2+. Never place a project API key in the app.
+
+The SDK observes tokens and authorization changes, queues encrypted uploads, and
+keeps activities bound to their original user association. Use fresh activity IDs
+after identity changes. Server audiences can target one or up to 1,000 users; all
+registrations sharing an ID receive the same complete content state. Verify the
+widget on physical devices, including remote starts while backgrounded and
+login/logout. The previously published 0.2.0 release predates this feature.

@@ -72,6 +72,16 @@ Foreground display can be disabled with `displayInForeground: false`.
 
 Background alerts may appear before SDK checks run. Receipts cover SDK-observed messages; APNs acceptance does not confirm delivery. Pending sync resumes when iOS next allows execution.
 
+## Live Activities
+
+Use `sdk.liveActivities` for automatic ActivityKit setup, local starts, and manual
+`enter`/`exit` token registration. Supports custom typed attributes and default
+JSON attributes, single-user or shared multi-user activities, and durable token
+retries. Local starts require iOS 16.1+ and remote starts iOS 17.2+.
+See the [Live Activities guide](LIVE_ACTIVITIES.md) for widget setup, registration
+grants, identity handling, and examples. Link the lightweight
+`NotificationDevActivityKit` product to the widget extension.
+
 ## Handle notification opens
 
 `pendingOpens` emits unacknowledged notification taps, including the tap that

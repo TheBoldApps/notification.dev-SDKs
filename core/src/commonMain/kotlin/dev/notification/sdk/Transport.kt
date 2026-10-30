@@ -4,6 +4,7 @@ import dev.notification.sdk.generated.model.*
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.http.fromHttpToGmtDate
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.*
 
 internal class TransportException(val code: String, val retryable: Boolean, val retryAfterMs: Long = 0, val httpStatus: Int? = null) :
     Exception("SDK request failed ($code)")
@@ -17,6 +18,8 @@ internal interface Transport {
         id: String, credential: String, operationId: String, associationId: String,
         externalId: String?
     ): ServerState
+
+    suspend fun liveActivity(id: String, credential: String, request: LiveActivityRequest)
 
     suspend fun push(id: String, credential: String, request: PushRequest)
 }
@@ -71,6 +74,30 @@ internal class HttpTransport(
                 optedIn = request.device.optedIn,
                 metadata = (request.device.metadata ?: metadata).toWire()
             ))
+        }
+    }
+
+    override suspend fun liveActivity(id: String, credential: String, request: LiveActivityRequest) {
+        val body = request.body
+        val association = requireNotNull(request.associationId)
+        val deleteBody = if (request.kind == "exit") buildJsonObject { put("associationId", association) } else null
+        http.execute(credential, pathId = id, deleteBody = deleteBody) { api ->
+            when (request.kind) {
+                "start" -> api.syncLiveActivityStartToken(INSTALLATION_PATH_ID, request.id,
+                    SyncLiveActivityStartTokenRequest(
+                        activityType = body.getValue("activityType").jsonPrimitive.content,
+                        providerConfigurationId = body.getValue("providerConfigurationId").jsonPrimitive.content,
+                        associationId = association,
+                        enabled = body.getValue("enabled").jsonPrimitive.boolean,
+                        token = body["token"]?.jsonPrimitive?.contentOrNull))
+                "enter" -> api.registerLiveActivity(INSTALLATION_PATH_ID, request.target, request.id,
+                    RegisterLiveActivityRequest(associationId = association,
+                        token = body.getValue("token").jsonPrimitive.content,
+                        registrationToken = body["registrationToken"]?.jsonPrimitive?.contentOrNull))
+                "exit" -> api.unregisterLiveActivity(INSTALLATION_PATH_ID, request.target, request.id,
+                    UnregisterLiveActivityRequest(associationId = association))
+                else -> error("Unknown Live Activity operation")
+            }
         }
     }
 

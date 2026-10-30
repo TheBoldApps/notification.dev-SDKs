@@ -4,8 +4,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.*
 
 /** Integration boundary for native facades. Scheduling is optional and always best effort. */
 class CoreClient internal constructor(
@@ -127,6 +126,30 @@ class CoreClient internal constructor(
         require(code in setOf("FCM_AUTHENTICATION_FAILED", "FCM_TOKEN_UNAVAILABLE", "FIREBASE_NOT_CONFIGURED", "APNS_REGISTRATION_FAILED"))
 
         engine.reportPushRegistrationFailure(code)
+    }
+
+    suspend fun bindLiveActivity(activityId: String) = engine.bindLiveActivity(activityId)
+
+    suspend fun liveActivity(kind: String, target: String, body: JsonObject) {
+        when (kind) {
+            "start" -> {
+                validateLiveActivityText(body.getValue("activityType").jsonPrimitive.content)
+                require(body.getValue("providerConfigurationId").jsonPrimitive.content.matches(
+                    Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")))
+                body.getValue("enabled").jsonPrimitive.boolean
+                body["token"]?.jsonPrimitive?.contentOrNull?.let(::validateLiveActivityToken)
+            }
+            "enter" -> {
+                validateLiveActivityToken(body.getValue("token").jsonPrimitive.content)
+                body["registrationToken"]?.jsonPrimitive?.contentOrNull?.let { require(it.length == 43) }
+            }
+            "exit" -> require(body.isEmpty())
+            else -> sdkFailure("INVALID_LIVE_ACTIVITY")
+        }
+        val key = if (kind == "start") {
+            "${body.getValue("providerConfigurationId").jsonPrimitive.content}:${body.getValue("activityType").jsonPrimitive.content}"
+        } else target
+        engine.liveActivity(kind, key, body)
     }
 
     fun decodeNotification(json: String): NotificationPayload? = runCatching {

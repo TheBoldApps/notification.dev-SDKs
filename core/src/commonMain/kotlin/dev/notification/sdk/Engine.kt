@@ -9,8 +9,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.*
 
 internal const val APP_OPENED_EVENT = "notification_dev.app_opened"
 
@@ -103,6 +102,7 @@ internal class Engine(
     private fun pruneNotificationHistory() {
         val cutoff = now() - RETENTION
         data = data.copy(
+            liveActivities = data.liveActivities.prune(now()),
             opens = data.opens.filter { it.openedAt >= cutoff }.takeLast(100),
             seenDeliveries = data.seenDeliveries.filterValues { it >= cutoff }.entries.toList().takeLast(1000)
                 .associate { it.toPair() }
@@ -140,7 +140,7 @@ internal class Engine(
             externalId = visible?.user?.externalId,
             lastSyncedAt = data.lastSyncedAt.takeIf { visible != null },
             hasPendingChanges = !data.user.changes.isEmpty || data.events.isNotEmpty() || data.pendingDevice != null ||
-                data.identity.isPending,
+                data.identity.isPending || data.liveActivities.requests.isNotEmpty(),
             pushOptedIn = data.device.optedIn,
             pushRegistration = data.device.registration?.let { local ->
                 visible?.push?.registration?.takeIf { it.status == local.status && it.errorCode == local.errorCode } ?: local
@@ -176,6 +176,10 @@ internal class Engine(
 
         if (transition && foreground && previous != null && previous.associationId != snapshot.associationId) {
             pendingAppOpen = true
+        }
+
+        if (transition && previous != null && previous.associationId != snapshot.associationId) {
+            data = data.copy(liveActivities = data.liveActivities.changeAssociation())
         }
 
         data = data.copy(snapshot = snapshot, lastSyncedAt = now(),
@@ -251,7 +255,8 @@ internal class Engine(
                     registrationSecret = registrationSecret(),
                     configurationId = data.configurationId,
                     identity = data.identity,
-                    device = data.device
+                    device = data.device,
+                    liveActivities = data.liveActivities.changeAssociation()
                 )
                 refreshRequested = true
                 persist(lastError = null)
@@ -390,7 +395,8 @@ internal class Engine(
         data = data.copy(
             user = data.user.discard(),
             events = emptyList(),
-            opens = emptyList()
+            opens = emptyList(),
+            liveActivities = data.liveActivities.changeAssociation()
         )
     }
 
@@ -626,6 +632,7 @@ internal class Engine(
             if (mutex.withLock { data.identity.isLoggingIn }) {
                 return@withLock SyncResult.Done
             }
+            syncLiveActivities()
             syncPush()
             val updated = syncUser()
             syncEvents()
@@ -634,7 +641,7 @@ internal class Engine(
             }
             mutex.withLock {
                 val pending = data.identity.isLoggingOut || data.pendingDevice?.rejected == false ||
-                    data.user.needsSync || data.events.isNotEmpty()
+                    data.user.needsSync || data.events.isNotEmpty() || data.liveActivities.requests.isNotEmpty()
 
                 if (pending) SyncResult.Pending else SyncResult.Done
             }
@@ -644,6 +651,79 @@ internal class Engine(
             if (e is TransportException && e.retryable) SyncResult.Retry(e.retryAfterMs) else SyncResult.Done
         } finally {
             endSync()
+        }
+    }
+
+    suspend fun bindLiveActivity(activityId: String) = mutex.withLock {
+        validateLiveActivityText(activityId)
+        data.identity.requireSettled()
+        val association = data.snapshot?.associationId ?: sdkFailure("LIVE_ACTIVITY_NOT_READY")
+        val binding = data.liveActivities.bindings[activityId]
+        if (binding != null && (binding.associationId != association || binding.stopped)) {
+            sdkFailure("STALE_LIVE_ACTIVITY")
+        }
+        if (binding == null) {
+            if (data.liveActivities.bindings.size >= 1000) sdkFailure("QUEUE_FULL")
+            data = data.copy(liveActivities = data.liveActivities.copy(
+                bindings = data.liveActivities.bindings + (activityId to LiveActivityBinding(association, createdAt = now()))))
+            persist()
+        }
+    }
+
+    suspend fun liveActivity(kind: String, target: String, body: JsonObject) = mutex.withLock {
+        data.identity.requireSettled()
+        val association = data.snapshot?.associationId
+        if (kind != "start") {
+            validateLiveActivityText(target)
+            val current = association ?: sdkFailure("LIVE_ACTIVITY_NOT_READY")
+            val binding = data.liveActivities.bindings[target]
+            if (binding != null && (binding.associationId != current || (binding.stopped && kind != "exit"))) {
+                sdkFailure("STALE_LIVE_ACTIVITY")
+            }
+            if (binding == null && data.liveActivities.bindings.size >= 1000) sdkFailure("QUEUE_FULL")
+        }
+        val request = LiveActivityRequest(newId(), kind, target, body, association)
+        var live = data.liveActivities.enqueue(request)
+        if (kind != "start") {
+            live = live.copy(bindings = live.bindings + (target to LiveActivityBinding(association!!, kind == "exit",
+                data.liveActivities.bindings[target]?.createdAt ?: now())))
+        }
+        data = data.copy(liveActivities = live)
+        persist()
+        wake()
+    }
+
+    private suspend fun syncLiveActivities() {
+        // Bound each pass so frequently rotating tokens cannot starve other SDK work.
+        repeat(32) {
+            val before = mutex.withLock {
+                if (data.identity.isPending) return
+                val live = data.liveActivities
+                val first = live.requests.firstOrNull() ?: return
+                val association = data.snapshot!!.associationId
+                if (first.associationId != null && first.associationId != association) {
+                    data = data.copy(liveActivities = live.copy(requests = live.requests.drop(1)))
+                    persist()
+                    return@withLock null
+                }
+                val captured = first.copy(associationId = association, attempted = true)
+                data = data.copy(liveActivities = live.copy(requests = listOf(captured) + live.requests.drop(1)))
+                persist()
+                data
+            }
+            if (before == null) return@repeat
+            val request = before.liveActivities.requests.first()
+            try {
+                transport.liveActivity(before.installationId, before.credential!!, request)
+            } catch (error: TransportException) {
+                if (error.retryable) throw error
+                mutex.withLock { report(error.code) }
+            }
+            mutex.withLock {
+                data = data.copy(liveActivities = data.liveActivities.copy(
+                    requests = data.liveActivities.requests.filterNot { it.id == request.id }))
+                persist()
+            }
         }
     }
 

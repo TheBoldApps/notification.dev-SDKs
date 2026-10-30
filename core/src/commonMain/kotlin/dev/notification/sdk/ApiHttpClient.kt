@@ -12,8 +12,12 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.observer.wrapWithContent
 import io.ktor.client.request.HttpRequestPipeline
 import io.ktor.client.request.header
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpReceivePipeline
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
+import io.ktor.http.contentType
 import io.ktor.http.URLProtocol
 import io.ktor.http.Url
 import io.ktor.http.encodeURLPathPart
@@ -57,7 +61,7 @@ internal class ApiHttpClient(
         }
     }
 
-    suspend inline fun <reified T : Any> execute(credential: String? = null, pathId: String? = null, call: suspend (NativeSDKApi) -> HttpResponse<T>): T {
+    suspend inline fun <reified T : Any> execute(credential: String? = null, pathId: String? = null, deleteBody: JsonObject? = null, call: suspend (NativeSDKApi) -> HttpResponse<T>): T {
         require(pathId != "." && pathId != "..")
 
         val client = HttpClient(engine) {
@@ -77,6 +81,17 @@ internal class ApiHttpClient(
                 val prefix = base.encodedPath.trimEnd('/')
                 val relative = context.url.encodedPath.removePrefix(prefix)
                 context.url.encodedPath = prefix + relative.replace(INSTALLATION_PATH_ID, pathId.encodeURLPathPart())
+            }
+        }
+
+        // OpenAPI Generator's multiplatform client omits DELETE bodies. This SDK endpoint
+        // requires an association in its JSON body; supply it before content negotiation.
+        if (deleteBody != null) {
+            client.requestPipeline.intercept(HttpRequestPipeline.Before) {
+                check(context.method == HttpMethod.Delete)
+                context.contentType(ContentType.Application.Json)
+                context.setBody(deleteBody)
+                proceedWith(deleteBody)
             }
         }
 
