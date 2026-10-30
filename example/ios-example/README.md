@@ -35,3 +35,48 @@ Use a disposable project:
 - Test sandbox/production separately, iOS 15 and a current release, and storage access before first unlock.
 
 Background APNs alerts may appear before SDK eligibility checks. Simulator tests do not establish device delivery.
+
+## Live Activities
+
+The project includes `NotificationExampleWidget` with both typed delivery and
+default dictionary widgets. Set `LiveActivityProviderConfigurationId` in the main
+app's Info.plist to your APNs provider UUID. Match app and widget bundle IDs to
+your signing setup. Startup sets up observers for both attribute types, including
+background launches.
+
+Use the Live Activities form to start a default or typed activity with a fresh
+activity ID and registration grant from your authenticated backend. The backend
+grant must match the type, installation, and current association. See the
+[SDK guide](../../ios/LIVE_ACTIVITIES.md) for the grant request and remote start,
+update, and end payloads. Keep project API keys on your backend.
+
+For the default widget send state inside `eventUpdates.data`; the typed widget
+expects `status` and `minutesRemaining` directly in `eventUpdates`. The local end
+button ends the selected UI and unregisters it. Verify local and remote starts,
+shared audiences on two devices, relaunch, permission changes, and account
+switching on physical devices.
+
+### Local simulator launch configuration
+
+You can override the example project and API at launch without editing source.
+The example remembers these public settings for later background launches:
+
+```sh
+env SIMCTL_CHILD_NOTIFICATION_DEV_PROJECT_ID=<project-uuid> \
+    SIMCTL_CHILD_NOTIFICATION_DEV_BASE_URL=http://127.0.0.1:<local-port>/ \
+    SIMCTL_CHILD_NOTIFICATION_DEV_LIVE_ACTIVITY_PROVIDER_ID=<provider-uuid> \
+    xcrun simctl launch <simulator-uuid> dev.notification.example.ios
+```
+
+Build simulator runs with signing enabled (`CODE_SIGNING_ALLOWED=YES
+CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO`) so the example's application and
+Keychain entitlements are embedded. The unsigned commands above verify compilation;
+they do not produce a runnable Keychain integration. To change the launch project
+or API after initialization, use a fresh app installation or simulator: SDK state
+is bound to its project and API URL.
+
+### Random number server
+
+The [randoms Python server](randoms-server/README.md) starts a widget titled
+`randoms` and sends random numbers through the server-to-server API every two
+seconds. It uses a server-side project API key and exposes a local status endpoint.

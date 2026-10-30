@@ -81,7 +81,7 @@ local development. See [the iOS release procedure](RELEASING.md).
 Prepare the framework, then run from `ios/`:
 
 ```sh
-xcodebuild -scheme NotificationDev -destination 'platform=iOS Simulator,id=SIMULATOR_UUID' -derivedDataPath /tmp/notification-ios-tests test CODE_SIGNING_ALLOWED=NO ARCHS=arm64
+xcodebuild -scheme NotificationDev-Package -destination 'platform=iOS Simulator,id=SIMULATOR_UUID' -derivedDataPath /tmp/notification-ios-tests test CODE_SIGNING_ALLOWED=NO ARCHS=arm64
 ```
 
 Use the example's [device checks](example/ios-example/README.md#device-checks) for real APNs delivery.

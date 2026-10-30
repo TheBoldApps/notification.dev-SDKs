@@ -1,3 +1,4 @@
+import ActivityKit
 import NotificationDev
 import SwiftUI
 import UserNotifications
@@ -21,15 +22,37 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        // ActivityKit can relaunch the simulator app without simctl's environment.
+        // Remember only public configuration; credentials remain in SDK secure storage.
+        let defaults = UserDefaults.standard
+        for key in [
+            "NOTIFICATION_DEV_PROJECT_ID", "NOTIFICATION_DEV_BASE_URL", "NOTIFICATION_DEV_LIVE_ACTIVITY_PROVIDER_ID",
+        ] {
+            if let value = ProcessInfo.processInfo.environment[key] {
+                defaults.set(value, forKey: key)
+            }
+        }
         startup = Task {
             do {
                 let client = try await NotificationDev.initialize(
                     SdkConfig(
                         // Replace this placeholder with your notification.dev project UUID.
-                        projectId: "YOUR_PUBLIC_PROJECT_UUID",
+                        projectId: defaults.string(forKey: "NOTIFICATION_DEV_PROJECT_ID")
+                            ?? "YOUR_PUBLIC_PROJECT_UUID",
+                        baseURL: URL(
+                            string: defaults.string(forKey: "NOTIFICATION_DEV_BASE_URL")
+                                ?? "https://app.notification.dev/")!,
                         allowHTTP: _isDebugAssertConfiguration(),
                         loggingEnabled: _isDebugAssertConfiguration()
                     ))
+                if #available(iOS 16.1, *),
+                    let provider = defaults.string(forKey: "NOTIFICATION_DEV_LIVE_ACTIVITY_PROVIDER_ID")
+                        ?? Bundle.main.object(forInfoDictionaryKey: "LiveActivityProviderConfigurationId") as? String,
+                    UUID(uuidString: provider) != nil
+                {
+                    try client.liveActivities.setupDefault(providerConfigurationId: provider)
+                    try client.liveActivities.setup(DeliveryAttributes.self, providerConfigurationId: provider)
+                }
                 model.attach(client)
 
                 return client
@@ -135,6 +158,8 @@ struct ContentView: View {
     @State private var emailOptedIn = true
     @State private var eventName = ""
     @State private var showingEventDialog = false
+    @State private var activityId = "order-123"
+    @State private var registrationToken = ""
 
     var body: some View {
         NavigationView {
@@ -188,6 +213,58 @@ struct ContentView: View {
                     Button("Track event") {
                         eventName = ""
                         showingEventDialog = true
+                    }
+                }
+                if #available(iOS 16.2, *) {
+                    Section("Live Activities") {
+                        Text(
+                            "Configure LiveActivityProviderConfigurationId in Info.plist. Get a fresh grant from your authenticated backend for each start."
+                        )
+                        TextField("Activity ID", text: $activityId).textInputAutocapitalization(.never)
+                        SecureField("Registration grant", text: $registrationToken)
+                        Button("Start default activity") {
+                            model.run { client in
+                                try await client.liveActivities.startDefault(
+                                    activityId, attributes: ["orderId": .string(activityId)],
+                                    content: ["status": .string("Preparing")], registrationToken: registrationToken)
+                            }
+                        }
+                        Button("Start typed delivery") {
+                            model.run { client in
+                                guard client.state.associationId != nil && !client.state.identityChangePending else {
+                                    throw NSError(
+                                        domain: "Example", code: 1,
+                                        userInfo: [NSLocalizedDescriptionKey: "Wait for installation registration"])
+                                }
+                                _ = try Activity<DeliveryAttributes>.request(
+                                    attributes: DeliveryAttributes(
+                                        orderId: activityId,
+                                        notification_dev: .create(
+                                            activityId: activityId, registrationToken: registrationToken)),
+                                    content: ActivityContent(
+                                        state: .init(status: "Preparing", minutesRemaining: 25), staleDate: nil),
+                                    pushType: .token)
+                            }
+                        }
+                        Button("End this activity locally") {
+                            model.run { client in
+                                for activity in Activity<DefaultLiveActivityAttributes>.activities
+                                where activity.attributes.notification_dev?.activityId == activityId {
+                                    await activity.end(
+                                        ActivityContent(
+                                            state: .init(data: ["status": .string("Delivered")]), staleDate: nil),
+                                        dismissalPolicy: .immediate)
+                                }
+                                for activity in Activity<DeliveryAttributes>.activities
+                                where activity.attributes.notification_dev?.activityId == activityId {
+                                    await activity.end(
+                                        ActivityContent(
+                                            state: .init(status: "Delivered", minutesRemaining: 0), staleDate: nil),
+                                        dismissalPolicy: .immediate)
+                                }
+                                try await client.liveActivities.exit(activityId)
+                            }
+                        }
                     }
                 }
                 Section("Pending opens") {

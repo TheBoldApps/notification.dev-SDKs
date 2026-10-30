@@ -9,6 +9,40 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ContractTest {
+    @Test fun liveActivityTransportUsesInstallationAuthAssociationAndStableKeys() = runTest {
+        MockWebServer().use { server ->
+            val transport = HttpTransport(CoreConfig("project", server.url("/prefix/").toString(), allowHttp = true))
+            try {
+                val start = buildJsonObject {
+                    put("activityType", "DeliveryAttributes")
+                    put("providerConfigurationId", "provider")
+                    put("enabled", false)
+                    put("token", JsonNull)
+                }
+                val requests = listOf(
+                    LiveActivityRequest("start-key", "start", "provider:type", start, "association"),
+                    LiveActivityRequest("enter-key", "enter", "order:1", buildJsonObject {
+                        put("token", "00ff"); put("registrationToken", "grant")
+                    }, "association"),
+                    LiveActivityRequest("rotate-key", "enter", "order:1", buildJsonObject { put("token", "0011") }, "association"),
+                    LiveActivityRequest("exit-key", "exit", "order:1", JsonObject(emptyMap()), "association")
+                )
+                for (request in requests) {
+                    server.enqueue(MockResponse().setBody("""{"success":true}"""))
+                    transport.liveActivity("installation", "credential", request)
+                    val sent = server.takeRequest()
+                    assertEquals("Bearer credential", sent.getHeader("Authorization"))
+                    assertEquals(request.id, sent.getHeader("Idempotency-Key"))
+                    assertEquals(if (request.kind == "exit") "DELETE" else "PUT", sent.method)
+                    val suffix = if (request.kind == "start") "live-activity-start-token" else "live-activities/order:1"
+                    assertEquals("/prefix/v1/sdk/installations/installation/$suffix", sent.path)
+                    assertEquals(JsonObject(request.body + ("associationId" to JsonPrimitive("association"))),
+                        wireJson.parseToJsonElement(sent.body.readUtf8()))
+                }
+            } finally { transport.close() }
+        }
+    }
+
     @Test fun subscriptionRejectionPreservesBackendErrorCode() = runTest {
         MockWebServer().use { server ->
             val transport = HttpTransport(CoreConfig("project", server.url("/").toString(), allowHttp = true))

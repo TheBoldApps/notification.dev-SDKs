@@ -35,3 +35,6 @@ mock/__pycache__/
 **/*.tgz
 example/expo-example/android/
 example/expo-example/ios/
+
+# Python example server
+example/ios-example/randoms-server/__pycache__/

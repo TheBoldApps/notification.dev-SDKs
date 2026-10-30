@@ -62,7 +62,8 @@ internal data class StoredState(
     val device: DeviceProperties = DeviceProperties(),
     val pendingDevice: PendingDevice? = PendingDevice(),
     val opens: List<NotificationOpen> = emptyList(),
-    val seenDeliveries: Map<String, Long> = emptyMap()
+    val seenDeliveries: Map<String, Long> = emptyMap(),
+    val liveActivities: LiveActivityStorage = LiveActivityStorage()
 )
 
 internal interface StateStore {

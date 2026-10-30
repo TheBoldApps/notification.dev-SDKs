@@ -93,6 +93,8 @@ class IosBridge @Throws(Exception::class) constructor(
                         string("name"), args["properties"]?.jsonObject ?: JsonObject(emptyMap()),
                         args["eventId"]?.jsonPrimitive?.contentOrNull
                     ))
+                    "liveActivityBind" -> client.bindLiveActivity(string("activityId"))
+                    "liveActivity" -> client.liveActivity(string("kind"), string("target"), args.getValue("body").jsonObject)
                     "acknowledge" -> client.acknowledgeOpen(string("id"))
                     "device" -> client.updateDevice(
                         args["token"]?.jsonPrimitive?.contentOrNull,
