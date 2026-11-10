@@ -134,6 +134,7 @@ final class ExampleModel: ObservableObject {
     @Published var opens: [NotificationOpen] = []
     @Published var message = "Starting…"
     @Published var initializing = false
+    @Published private(set) var suppressedConversationId: String?
     var resetLocalState: (() -> Void)?
     @Published var errorMessage: String?
     private(set) var client: NotificationDev?
@@ -149,6 +150,7 @@ final class ExampleModel: ObservableObject {
 
     func attach(_ client: NotificationDev) {
         self.client = client
+        suppressedConversationId = nil
         message = "Initialized"
         tasks = [
             Task { [weak self] in for await state in client.states { self?.state = state } },
@@ -157,6 +159,16 @@ final class ExampleModel: ObservableObject {
                 for await error in client.diagnostics { self?.showError(error) }
             },
         ]
+    }
+
+    func suppressConversation(_ id: String?) {
+        guard let client else { return }
+        do {
+            try client.suppressForegroundNotifications(
+                matchingData: id.map { ["conversationId": .string($0)] })
+            suppressedConversationId = id
+            errorMessage = nil
+        } catch { showError(error) }
     }
 
     func run(_ action: @escaping (NotificationDev) async throws -> Void) {
@@ -181,6 +193,7 @@ struct ContentView: View {
     @State private var showingEventDialog = false
     @State private var activityId = "order-123"
     @State private var registrationToken = ""
+    @State private var conversationId = "42"
 
     var body: some View {
         NavigationView {
@@ -216,8 +229,14 @@ struct ContentView: View {
                 }
                 Section("Identity") {
                     TextField("External user ID", text: $externalId).textInputAutocapitalization(.never)
-                    Button("Log in") { model.run { try await $0.login(externalId) } }
-                    Button("Log out") { model.run { try await $0.logout() } }
+                    Button("Log in") {
+                        model.suppressConversation(nil)
+                        model.run { try await $0.login(externalId) }
+                    }
+                    Button("Log out") {
+                        model.suppressConversation(nil)
+                        model.run { try await $0.logout() }
+                    }
                 }
                 Section("Email and tags") {
                     TextField("Email", text: $email).textInputAutocapitalization(.never).keyboardType(
@@ -243,6 +262,25 @@ struct ContentView: View {
                         eventName = ""
                         showingEventDialog = true
                     }
+                }
+                Section("Foreground suppression") {
+                    TextField("Conversation ID", text: $conversationId)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .disabled(model.suppressedConversationId != nil)
+                    Toggle("Suppress this conversation", isOn: Binding(
+                        get: { model.suppressedConversationId != nil },
+                        set: { enabled in
+                            model.suppressConversation(enabled
+                                ? conversationId.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
+                        }))
+                        .disabled(model.client == nil || (model.suppressedConversationId == nil
+                            && conversationId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+                    if let id = model.suppressedConversationId {
+                        Text("Hiding foreground alerts with conversationId = \(id).")
+                    }
+                    Text("Matching custom data hides the banner and sound while this app is open. Other conversations still notify. Receipts are still recorded. Turn off suppression to change the conversation ID.")
+                        .font(.caption)
                 }
                 if #available(iOS 16.2, *) {
                     Section("Live Activities") {

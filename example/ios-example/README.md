@@ -36,6 +36,19 @@ Use a disposable project:
 
 Background APNs alerts may appear before SDK eligibility checks. Simulator tests do not establish device delivery.
 
+### Foreground conversation suppression
+
+In **Foreground suppression**, enter a conversation ID (default `42`) and enable
+**Suppress this conversation**. Keep the app open and send a notification with
+custom data `{"conversationId":"42"}`. Its banner and sound should be suppressed,
+while its observed receipt is still reported. Send another with
+`{"conversationId":"43"}`; it should display normally. Values must be strings
+and match exactly. Disable the switch and resend the matching message to verify
+normal presentation returns. Background delivery remains controlled by iOS.
+
+The filter is local to the running process and clears on login, logout, or app
+restart. Disable suppression before editing the conversation ID.
+
 ## Live Activities
 
 The project includes `NotificationExampleWidget` with both typed delivery and
