@@ -31,6 +31,7 @@ export interface SdkState {
   permission: PushPermissionStatus;
   lastError?: SdkError | null;
   identityChangePending: boolean;
+  pushTokenRegistered: boolean;
 }
 export interface NotificationPayload {
   version: number;
@@ -41,6 +42,14 @@ export interface NotificationPayload {
   body: string;
   data: JsonObject;
   deepLink?: string | null;
+  collapseId?: string | null;
+  threadId?: string | null;
+  ttlSeconds?: number | null;
+  priority?: 'high' | 'normal' | null;
+  ios?: IosNotificationOptions | null;
+  android?: AndroidNotificationOptions | null;
+  imageUrl?: string | null;
+  contentAvailable?: boolean | null;
 }
 export interface NotificationOpen {
   interactionId: string;
@@ -55,3 +64,16 @@ export interface EventMap {
   diagnostics: SdkError;
 }
 export interface Subscription { remove(): void }
+
+export interface IosNotificationOptions {
+  sound?: string | null;
+  badge?: number | null;
+  interruptionLevel?: 'passive' | 'active' | 'time-sensitive' | 'critical' | null;
+  mutableContent?: boolean | null;
+  subtitle?: string | null;
+}
+export interface AndroidNotificationOptions {
+  channelId?: string | null;
+  groupKey?: string | null;
+  groupSummary?: string | null;
+}

@@ -15,7 +15,8 @@ class CoreClient internal constructor(
     schedule: suspend (Long) -> Unit = {},
     diagnostic: (SdkError) -> Unit = {},
     logger: SdkLogger = SdkLogger(),
-    private val clearNotifications: () -> Unit = {}
+    private val clearNotifications: () -> Unit = {},
+    private val initialMetadata: DeviceMetadata? = null
 ) {
     constructor(
         config: CoreConfig,
@@ -31,7 +32,7 @@ class CoreClient internal constructor(
     ) : this(
         config, storage,
         HttpTransport(config, metadata, platform, provider, logger = SdkLogger(config.loggingEnabled, log)),
-        wake, schedule, diagnostic, SdkLogger(config.loggingEnabled, log), clearNotifications
+        wake, schedule, diagnostic, SdkLogger(config.loggingEnabled, log), clearNotifications, metadata
     )
 
     private val engine = Engine(object : StateStore {
@@ -39,7 +40,10 @@ class CoreClient internal constructor(
 
         override suspend fun save(state: StoredState) = storage.save(wireJson.encodeToString(state))
     }, transport, wake = wake, configurationId = "${config.projectId}|${config.baseUrl.trimEnd('/')}",
-        diagnostic = diagnostic, logger = logger)
+        diagnostic = {
+            if (it.code == "UNAUTHENTICATED" || it.code == "HTTP_401") clearNotifications()
+            diagnostic(it)
+        }, logger = logger)
     private val coordinator = SyncCoordinator(engine, schedule, diagnostic = diagnostic)
 
     private val notificationEvents = MutableSharedFlow<NotificationEvent>(extraBufferCapacity = 32)
@@ -50,7 +54,10 @@ class CoreClient internal constructor(
     val state get() = engine.state
     val opens get() = engine.opens
 
-    suspend fun start() = engine.start()
+    suspend fun start() {
+        engine.start()
+        initialMetadata?.let { engine.updateMetadata(it) }
+    }
 
     suspend fun awaitReady() = engine.awaitReady()
 

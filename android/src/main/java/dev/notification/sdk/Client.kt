@@ -23,22 +23,25 @@ internal class Client(val app: Application, val config: SdkConfig) : DefaultLife
         logger.error("SDK background work failed", error)
         diagnosticEvents.tryEmit(SdkError("BACKGROUND_FAILURE", "SDK background work failed"))
     })
-    val engine: CoreClient = CoreClient(config.coreConfig(), FileStateStore(app), DevicePlatform.ANDROID, PushProvider.FCM, metadata = DeviceMetadata(
-        appVersion = app.packageManager.getPackageInfo(app.packageName, 0).versionName?.takeIf { it.isNotBlank() },
-        osVersion = android.os.Build.VERSION.RELEASE,
-        locale = Locale.getDefault().toLanguageTag(),
-        timezone = java.util.TimeZone.getDefault().id
-    ), wake = ::wake, schedule = { delay -> scheduleSync(app, delay) },
+    val engine: CoreClient = CoreClient(config.coreConfig(), FileStateStore(app), DevicePlatform.ANDROID, PushProvider.FCM, metadata = deviceMetadata(), wake = ::wake, schedule = { delay -> scheduleSync(app, delay) },
         diagnostic = {
             logger.error("${it.code}: ${it.message}")
             diagnosticEvents.tryEmit(it)
         }, log = { priority, message -> android.util.Log.println(priority, "NotificationDev", message) },
         clearNotifications = { presenter.clear() })
+    private fun deviceMetadata() = DeviceMetadata(
+        appIdentifier = app.packageName,
+        appVersion = app.packageManager.getPackageInfo(app.packageName, 0).versionName?.takeIf { it.isNotBlank() },
+        osVersion = android.os.Build.VERSION.RELEASE,
+        locale = Locale.getDefault().toLanguageTag(),
+        timezone = java.util.TimeZone.getDefault().id
+    )
+
     private val tokenAcquisition = Mutex()
     private val registrationUpdates = Mutex()
     private var tokenGeneration = 0L
     private val wakes = Channel<Unit>(Channel.CONFLATED)
-    val presenter = NotificationPresenter(app, config, engine::encodeNotification)
+    val presenter = NotificationPresenter(app, config, engine::encodeNotification) { diagnosticEvents.tryEmit(it) }
 
     init {
         presenter.createChannel()
@@ -120,6 +123,7 @@ internal class Client(val app: Application, val config: SdkConfig) : DefaultLife
         scope.launch {
             engine.awaitReady()
             engine.setForeground(isForeground())
+            engine.updateMetadata(deviceMetadata())
             engine.updateDevice(status = Permissions.status(app, config.channelId).shared())
             acquireFirebaseToken()
             engine.requestRefresh()

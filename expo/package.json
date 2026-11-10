@@ -5,14 +5,40 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "react-native": "src/index.ts",
-  "files": ["build", "src", "android/build.gradle", "android/src", "ios/*.swift", "ios/*.podspec", "plugin", "app.plugin.js", "expo-module.config.json", "README.md", "LICENSE", "NOTICE"],
+  "files": [
+    "build",
+    "src",
+    "android/build.gradle",
+    "android/src",
+    "ios/*.swift",
+    "ios/*.podspec",
+    "plugin",
+    "app.plugin.js",
+    "expo-module.config.json",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test test/*.test.cjs",
     "prepack": "npm run build"
   },
-  "peerDependencies": {"expo": ">=57 <58", "react": "*", "react-native": "*"},
-  "devDependencies": {"expo": "~57.0.28", "react": "19.2.3", "react-native": "0.86.3", "typescript": "~5.9.2"},
+  "peerDependencies": {
+    "expo": ">=57 <59",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "expo": "58.0.23",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "typescript": "~5.9.2"
+  },
   "license": "Apache-2.0",
-  "repository": {"type": "git", "url": "https://github.com/TheBoldApps/notification.dev-SDKs.git", "directory": "expo"}
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TheBoldApps/notification.dev-SDKs.git",
+    "directory": "expo"
+  }
 }

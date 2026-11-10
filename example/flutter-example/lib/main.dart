@@ -41,6 +41,10 @@ class _ExampleAppState extends State<ExampleApp> {
           projectId: 'YOUR_PUBLIC_PROJECT_UUID',
           allowHttp: true,
           loggingEnabled: true,
+          iosApnsEnvironment:
+              bool.hasEnvironment('NOTIFICATION_DEV_APNS_ENVIRONMENT')
+              ? String.fromEnvironment('NOTIFICATION_DEV_APNS_ENVIRONMENT')
+              : null,
         ),
       );
       if (!mounted) {

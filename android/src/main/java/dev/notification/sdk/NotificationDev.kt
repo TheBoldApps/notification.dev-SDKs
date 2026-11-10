@@ -15,6 +15,9 @@ object NotificationDev {
     @Volatile
     private var client: Client? = null
 
+    @Volatile
+    private var foregroundSuppression: JsonObject? = null
+
     @Synchronized
     fun initialize(application: Application, config: SdkConfig) {
         require(config.projectId.isNotBlank() && config.smallIcon != 0 && config.channelId.isNotBlank())
@@ -58,11 +61,20 @@ object NotificationDev {
     suspend fun refresh(): SdkState = ready().engine.refresh()
 
     suspend fun login(externalId: String) {
+        foregroundSuppression = null
         ready().engine.login(externalId)
     }
 
     suspend fun logout() {
+        foregroundSuppression = null
         ready().engine.logout()
+    }
+
+    /** Suppress foreground display when all supplied custom-data keys match. null clears the filter. */
+    suspend fun suppressForegroundNotifications(matchingData: JsonObject?) {
+        ready()
+        require(matchingData == null || matchingData.isNotEmpty()) { "Provide a nonempty data filter or null" }
+        foregroundSuppression = matchingData?.let { JsonObject(it.toMap()) }
     }
 
     suspend fun setPushOptedIn(enabled: Boolean) {
@@ -143,15 +155,29 @@ object NotificationDev {
 
     internal suspend fun handlePayload(json: String): Boolean {
         val c = ready()
-        val payload = c.engine.decodeNotification(json) ?: return false
+        // Presence of the envelope establishes ownership, including malformed messages.
+        val payload = c.engine.decodeNotification(json) ?: return true
 
         if (c.engine.receive(payload)) {
-            if (c.config.displayInForeground || !c.isForeground()) {
-                c.engine.displayIfEligible(payload) { c.presenter.display(payload) }
+            if (shouldDisplay(c, payload)) {
+                val image = loadNotificationImage(payload.imageUrl)
+                try {
+                    if (shouldDisplay(c, payload)) {
+                        c.engine.displayIfEligible(payload) { c.presenter.display(payload, image) }
+                    }
+                } finally {
+                    image?.recycle()
+                }
             }
         }
 
         return true
+    }
+
+    private suspend fun shouldDisplay(client: Client, payload: NotificationPayload): Boolean {
+        if (!client.isForeground()) return true
+        return client.config.displayInForeground &&
+            foregroundSuppression?.all { (key, value) -> payload.data[key] == value } != true
     }
 
     suspend fun onNewToken(token: String) {

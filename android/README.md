@@ -126,3 +126,7 @@ The SDK, examples, and documentation in this repository are licensed under the
 [Apache License, Version 2.0](../LICENSE). See [NOTICE](../NOTICE) for attribution.
 Third-party components retain their respective licenses. The hosted notification.dev
 service and its separate backend are not covered by this license.
+
+## Advanced push
+
+See the [advanced integration guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md) for platform options, app/environment routing, foreground suppression, images, credential revocation, and provider coexistence.

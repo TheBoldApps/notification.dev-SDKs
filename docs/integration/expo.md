@@ -16,7 +16,7 @@ TypeScript API over the **released** notification.dev native SDKs. Android uses
 checksum-verified Kotlin core XCFramework. The npm package contains bridge and
 configuration code only, with no native SDK sources or binaries.
 
-Initial compatibility: Expo SDK 57 / React Native 0.86, Android API 24+, iOS
+Compatibility: Expo SDK 57–58; the example pins SDK 58 / React Native 0.88, Android API 24+, iOS
 16.4+, and Apple Silicon simulators. Requires a development or production build;
 Expo Go, web, and desktop are unsupported. Bare React Native apps require Expo
 modules and equivalent native configuration.
@@ -158,10 +158,13 @@ Other methods include `logout()`, `removeTags(keys)`, `removeEmail()`,
 `setEmailOptedIn(enabled)`, `getPushPermissionStatus()`, and `openPushSettings()`.
 Opening settings does not confirm permission.
 
-This version requires exclusive push callback ownership. Do not combine it with
-`expo-notifications`, `@react-native-firebase/messaging`, a custom Firebase service,
-or another notification center delegate. The plugin rejects known conflicting
-packages; iOS reports delegate conflicts. Manual integration is not supported.
+The SDK handles messages carrying `notification_dev`. Its iOS delegate forwarder
+passes unrelated notifications to the previous delegate. Initialize other provider
+delegates first. The optional OneSignal example demonstrates coexistence without
+intercepting OneSignal's Android receiver. The plugin still rejects
+`expo-notifications` and `@react-native-firebase/messaging`, which require separate
+host callback/service integration. See the
+[coexistence guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md#coexistence-with-another-push-provider).
 
 See [shared semantics](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/README.md#shared-behavior) and
 [payload formats](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/contract/README.md#push-payloads). Android requires data-only
@@ -219,3 +222,7 @@ Use a disposable project and a signed app on a device with matching providers:
 
 Copyright 2026 The Bold Apps, LLC. Licensed under
 [Apache-2.0](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/LICENSE).
+
+## Advanced push and coexistence
+
+See the [advanced integration guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md) for payload options, app/APNs routing, server-acknowledged `pushTokenRegistered`, foreground suppression, images, revocation, and provider forwarding. Native adapters provide these capabilities underneath Flutter and Expo.

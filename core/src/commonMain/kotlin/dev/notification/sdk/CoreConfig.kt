@@ -20,7 +20,9 @@ data class DeviceMetadata(
     val appVersion: String? = null,
     val osVersion: String? = null,
     val locale: String? = null,
-    val timezone: String? = null
+    val timezone: String? = null,
+    val appIdentifier: String? = null,
+    val apnsEnvironment: String? = null
 )
 
 /** Platform adapter must encrypt and atomically replace the complete snapshot. */

@@ -49,6 +49,27 @@ test('bridge preserves tag/event values and native results', async () => {
   assert.deepEqual(f.calls[2], ['track', { name: 'checkout', properties: { nested: [null, true, { total: 42 }] } }]);
 });
 
+test('foreground suppression stays in native code and advanced tap data survives', async () => {
+  const f = fixture();
+  await f.client.initialize();
+  await f.client.suppressForegroundNotifications({ conversationId: 'chat:1' });
+  await f.client.suppressForegroundNotifications(null);
+  assert.deepEqual(f.calls.slice(1), [
+    ['suppressForegroundNotifications', { matchingData: { conversationId: 'chat:1' } }],
+    ['suppressForegroundNotifications', { matchingData: null }],
+  ]);
+  let result;
+  f.client.addListener('pendingOpens', value => { result = value; });
+  const opens = [{ interactionId: 'opened', openedAt: 1, notification: {
+    version: 1, deliveryId: 'delivery', associationId: 'association', expiresAt: 1900000000000,
+    title: 'Title', body: 'Body', data: { nested: [1, true, null] },
+    collapseId: 'chat:1', ios: { sound: null, badge: 0 }, android: { channelId: 'chat' },
+  } }];
+  f.emit('pendingOpens', opens);
+  assert.deepEqual(result, opens);
+  assert.ok(Object.isFrozen(result[0].notification.ios));
+});
+
 test('invalid JSON is rejected before it can be silently changed by serialization', async () => {
   const f = fixture(); await f.client.initialize();
   const cycle = {}; cycle.self = cycle;

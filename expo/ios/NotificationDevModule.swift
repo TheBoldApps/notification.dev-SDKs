@@ -70,6 +70,12 @@ public final class NotificationDevModule: Module, @unchecked Sendable {
     case "setEmail": try await sdk.setEmail(string("address"), optedIn: boolean("optedIn"))
     case "removeEmail": try await sdk.removeEmail()
     case "setEmailOptedIn": try await sdk.setEmailOptedIn(boolean("enabled"))
+    case "suppressForegroundNotifications":
+      switch args["matchingData"] {
+      case .object(let values): try sdk.suppressForegroundNotifications(matchingData: values)
+      case .null: try sdk.suppressForegroundNotifications(matchingData: nil)
+      default: throw BridgeFailure.invalidArgument
+      }
     case "setPushOptedIn": try await sdk.setPushOptedIn(boolean("enabled"))
     case "setTags":
       guard case .object(let values) = args["values"] else { throw BridgeFailure.invalidArgument }

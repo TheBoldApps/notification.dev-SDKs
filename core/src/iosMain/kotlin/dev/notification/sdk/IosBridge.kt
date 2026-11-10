@@ -19,6 +19,8 @@ class IosBridge @Throws(Exception::class) constructor(
     osVersion: String,
     locale: String,
     timezone: String,
+    appIdentifier: String?,
+    apnsEnvironment: String?,
     load: () -> String,
     save: (String) -> String?,
     wake: () -> Unit,
@@ -43,7 +45,7 @@ class IosBridge @Throws(Exception::class) constructor(
             }
         },
         DevicePlatform.IOS, PushProvider.APNS,
-        DeviceMetadata(appVersion, osVersion, locale, timezone),
+        DeviceMetadata(appVersion, osVersion, locale, timezone, appIdentifier, apnsEnvironment),
         wake = wake, schedule = { schedule(it) },
         diagnostic = { diagnostic(wireJson.encodeToString(it)) },
         clearNotifications = clearNotifications, log = log
@@ -77,7 +79,9 @@ class IosBridge @Throws(Exception::class) constructor(
                     "foreground" -> client.setForeground(bool("active"))
                     "requestRefresh" -> client.requestRefresh()
                     "metadata" -> client.updateMetadata(DeviceMetadata(
-                        string("appVersion"), string("osVersion"), string("locale"), string("timezone")
+                        string("appVersion"), string("osVersion"), string("locale"), string("timezone"),
+                        args["appIdentifier"]?.jsonPrimitive?.contentOrNull,
+                        args["apnsEnvironment"]?.jsonPrimitive?.contentOrNull
                     ))
                     "refresh" -> result = wireJson.encodeToString(client.refresh())
                     "login" -> client.login(string("externalId"))

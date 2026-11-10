@@ -1895,6 +1895,19 @@
         "additionalProperties": false,
         "type": "object",
         "properties": {
+          "appIdentifier": {
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+            "type": "string"
+          },
+          "apnsEnvironment": {
+            "enum": [
+              "sandbox",
+              "production"
+            ],
+            "type": "string"
+          },
           "appVersion": {
             "minLength": 1,
             "maxLength": 255,
@@ -2185,8 +2198,7 @@
           }
         },
         "required": [
-          "status",
-          "errorCode"
+          "status"
         ]
       },
       "SubscribersPermissionState": {
@@ -2350,6 +2362,182 @@
         "maxLength": 255,
         "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.:-]*$",
         "type": "string"
+      },
+      "NotificationPayload": {
+        "additionalProperties": false,
+        "type": "object",
+        "properties": {
+          "collapseId": {
+            "minLength": 1,
+            "maxLength": 64,
+            "type": "string"
+          },
+          "threadId": {
+            "minLength": 1,
+            "maxLength": 255,
+            "type": "string"
+          },
+          "ttlSeconds": {
+            "minimum": 1,
+            "maximum": 2419200,
+            "type": "integer"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "high"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "normal"
+                ]
+              }
+            ]
+          },
+          "ios": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "sound": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "badge": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "interruptionLevel": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "passive"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "active"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "time-sensitive"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "critical"
+                    ]
+                  }
+                ]
+              },
+              "mutableContent": {
+                "type": "boolean"
+              },
+              "subtitle": {
+                "anyOf": [
+                  {
+                    "maxLength": 1024,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "android": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "channelId": {
+                "minLength": 1,
+                "maxLength": 255,
+                "type": "string"
+              },
+              "groupKey": {
+                "minLength": 1,
+                "maxLength": 255,
+                "type": "string"
+              },
+              "groupSummary": {
+                "maxLength": 1024,
+                "type": "string"
+              }
+            }
+          },
+          "imageUrl": {
+            "maxLength": 2048,
+            "pattern": "^https?://",
+            "type": "string"
+          },
+          "contentAvailable": {
+            "type": "boolean"
+          },
+          "version": {
+            "minimum": 1,
+            "maximum": 1,
+            "format": "int32",
+            "type": "integer"
+          },
+          "deliveryId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "associationId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CommonJsonObject"
+          },
+          "deepLink": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "version",
+          "deliveryId",
+          "associationId",
+          "expiresAt",
+          "title",
+          "body",
+          "data",
+          "deepLink"
+        ]
       }
     },
     "securitySchemes": {

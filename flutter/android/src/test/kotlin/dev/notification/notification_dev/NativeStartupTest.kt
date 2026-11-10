@@ -52,6 +52,11 @@ class NativeStartupTest {
             assertEquals(1, calls)
             assertEquals(values().toString(), saved.readText())
             assertNull(NativeStartup.error)
+            // Adding iOS routing to shared Dart configuration must preserve Android identity.
+            NativeStartup.checkConfiguration(JsonObject(values() + ("iosApnsEnvironment" to JsonPrimitive("production"))))
+            assertThrows(SdkException::class.java) {
+                NativeStartup.checkConfiguration(JsonObject(values() + ("projectId" to JsonPrimitive("other"))))
+            }
         } finally {
             directory.deleteRecursively()
         }

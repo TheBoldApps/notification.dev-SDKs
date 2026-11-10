@@ -15,7 +15,11 @@ public final class NotificationDev {
         states: { [weak self] in self?.states ?? AsyncStream { $0.finish() } },
         report: { [weak self] error in self?.report(error) }
     )
-    public let config: SdkConfig
+    /// Runs after SDK eligibility checks. Return [] to suppress an owned foreground notification.
+    public var foregroundPresentation: ((NotificationPayload) -> UNNotificationPresentationOptions)?
+    private var foregroundSuppression: [String: JSONValue]?
+    private var apnsEnvironment: ApnsEnvironment?
+    public private(set) var config: SdkConfig
     private var bridge: IosBridge!
     private var initialization: Task<Void, Error>?
     private var timer: Task<Void, Never>?
@@ -28,12 +32,22 @@ public final class NotificationDev {
 
     public static func initialize(_ config: SdkConfig) async throws -> NotificationDev {
         if let existing = shared {
-            guard existing.config == config else {
+            var comparable = config
+            comparable.apnsEnvironment = existing.config.apnsEnvironment
+            guard existing.config == comparable else {
                 throw SdkError(
                     code: "CONFIGURATION_CHANGED",
                     message: "SDK already initialized with another configuration")
             }
             try await existing.initialization?.value
+            if existing.config.apnsEnvironment != config.apnsEnvironment {
+                let environment = config.apnsEnvironment ?? NativeRouting.environment(in: Bundle.main)
+                try await existing.perform("metadata", existing.metadataArguments(environment: environment))
+                existing.apnsEnvironment = environment
+                existing.config.apnsEnvironment = config.apnsEnvironment
+                UIApplication.shared.registerForRemoteNotifications()
+                existing.wake()
+            }
 
             return existing
         }
@@ -59,6 +73,7 @@ public final class NotificationDev {
 
     private init(config: SdkConfig) throws {
         self.config = config
+        apnsEnvironment = config.apnsEnvironment ?? NativeRouting.environment(in: Bundle.main)
         let storage = try SecureStorage()
         bridge = try IosBridge(
             projectId: config.projectId, baseUrl: config.baseURL.absoluteString,
@@ -67,6 +82,8 @@ public final class NotificationDev {
                 ?? "",
             osVersion: UIDevice.current.systemVersion, locale: Locale.current.identifier,
             timezone: TimeZone.current.identifier,
+            appIdentifier: Bundle.main.bundleIdentifier,
+            apnsEnvironment: apnsEnvironment?.rawValue,
             load: {
                 do {
                     let value = try storage.load().map(JSONValue.string) ?? .null
@@ -122,10 +139,21 @@ public final class NotificationDev {
 
     public func getEmail() -> EmailSubscription? { state.user.email }
     public func login(_ externalId: String) async throws {
+        foregroundSuppression = nil
         try await perform("login", ["externalId": .string(externalId)])
     }
 
-    public func logout() async throws { try await perform("logout") }
+    public func logout() async throws {
+        foregroundSuppression = nil
+        try await perform("logout")
+    }
+
+    public func suppressForegroundNotifications(matchingData: [String: JSONValue]?) throws {
+        guard matchingData?.isEmpty != true else {
+            throw SdkError(code: "INVALID_ARGUMENT", message: "Provide a nonempty data filter or nil")
+        }
+        foregroundSuppression = matchingData
+    }
     public func setPushOptedIn(_ enabled: Bool) async throws {
         try await perform("pushOptIn", ["enabled": .bool(enabled)])
     }
@@ -188,7 +216,14 @@ public final class NotificationDev {
         do {
             let accepted = try await call("receive", ["payload": payload], as: Bool.self)
 
-            return accepted && config.displayInForeground ? [.banner, .list, .sound] : []
+            guard accepted && config.displayInForeground else { return [] }
+            if let raw = try? JSONEncoder().encode(payload),
+                let decoded = try? JSONDecoder().decode(NotificationPayload.self, from: raw) {
+                if let filter = foregroundSuppression,
+                    filter.allSatisfy({ decoded.data[$0.key] == $0.value }) { return [] }
+                if let foregroundPresentation { return foregroundPresentation(decoded) }
+            }
+            return [.banner, .list, .sound, .badge]
         } catch {
             report(error)
             return []
@@ -267,21 +302,24 @@ public final class NotificationDev {
             })
     }
 
+    private func metadataArguments(environment: ApnsEnvironment?) -> [String: JSONValue] {
+        [
+            "appVersion": .string(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""),
+            "osVersion": .string(UIDevice.current.systemVersion),
+            "locale": .string(Locale.current.identifier),
+            "timezone": .string(TimeZone.current.identifier),
+            "appIdentifier": Bundle.main.bundleIdentifier.map(JSONValue.string) ?? .null,
+            "apnsEnvironment": environment.map { .string($0.rawValue) } ?? .null,
+        ]
+    }
+
     private func foreground() async {
         active = UIApplication.shared.applicationState != .background
         do {
             try await perform(
                 "foreground",
                 ["active": .bool(UIApplication.shared.applicationState == .active)])
-            try await perform(
-                "metadata",
-                [
-                    "appVersion": .string(
-                        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""),
-                    "osVersion": .string(UIDevice.current.systemVersion),
-                    "locale": .string(Locale.current.identifier),
-                    "timezone": .string(TimeZone.current.identifier),
-                ])
+            try await perform("metadata", metadataArguments(environment: apnsEnvironment))
             _ = try await getPushPermissionStatus()
             try await perform("requestRefresh")
         } catch { report(error) }

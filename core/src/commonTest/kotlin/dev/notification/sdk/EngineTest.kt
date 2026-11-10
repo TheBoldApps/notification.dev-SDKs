@@ -29,6 +29,13 @@ internal class FakeTransport : Transport {
     var identityFailure: TransportException? = null
     var registrationFailure: TransportException? = null
     val registrations = mutableListOf<Pair<String, String>>()
+    var registrationTemplate: String? = null
+    val registrationBodies = mutableListOf<String?>()
+    override fun registrationBody(id: String, secret: String): String? = registrationTemplate
+    override suspend fun register(id: String, secret: String, body: String?): Registration {
+        registrationBodies.add(body)
+        return register(id, secret)
+    }
     var eventFailure: TransportException? = null
     var afterUser: suspend () -> Unit = {}
     var beforeRead: suspend () -> Unit = {}

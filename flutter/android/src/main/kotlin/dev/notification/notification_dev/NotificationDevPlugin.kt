@@ -71,6 +71,8 @@ class NotificationDevPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Ac
                     "setEmail" -> NotificationDev.setEmail(call.string("address"), call.boolean("optedIn"))
                     "removeEmail" -> NotificationDev.removeEmail()
                     "setEmailOptedIn" -> NotificationDev.setEmailOptedIn(call.boolean("enabled"))
+                    "suppressForegroundNotifications" -> NotificationDev.suppressForegroundNotifications(
+                        (call.argument<String>("matchingData"))?.let { Json.parseToJsonElement(it).jsonObject })
                     "setPushOptedIn" -> NotificationDev.setPushOptedIn(call.boolean("enabled"))
                     "setTags" -> {
                         val values = json.parseToJsonElement(call.string("values")).jsonObject.mapValues { (_, value) ->

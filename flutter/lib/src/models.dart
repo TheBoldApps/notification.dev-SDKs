@@ -14,6 +14,7 @@ class SdkConfig {
     this.allowHttp = false,
     this.loggingEnabled = false,
     this.automaticIntegration = true,
+    this.iosApnsEnvironment,
   });
 
   final String projectId;
@@ -25,6 +26,7 @@ class SdkConfig {
   final bool allowHttp;
   final bool loggingEnabled;
   final bool automaticIntegration;
+  final String? iosApnsEnvironment;
 
   JsonMap toJson() => {
     'projectId': projectId,
@@ -36,6 +38,7 @@ class SdkConfig {
     'allowHttp': allowHttp,
     'loggingEnabled': loggingEnabled,
     'automaticIntegration': automaticIntegration,
+    if (iosApnsEnvironment != null) 'iosApnsEnvironment': iosApnsEnvironment,
   };
 }
 
@@ -147,7 +150,8 @@ class SdkState {
       lastError = json['lastError'] == null
           ? null
           : SdkException.fromJson(json['lastError'] as JsonMap),
-      identityChangePending = json['identityChangePending'] as bool? ?? false;
+      identityChangePending = json['identityChangePending'] as bool? ?? false,
+      pushTokenRegistered = json['pushTokenRegistered'] as bool? ?? false;
 
   final Availability availability;
   final UserProperties user;
@@ -164,6 +168,7 @@ class SdkState {
   final PushPermissionStatus permission;
   final SdkException? lastError;
   final bool identityChangePending;
+  final bool pushTokenRegistered;
 }
 
 class NotificationPayload {
@@ -175,7 +180,19 @@ class NotificationPayload {
       title = json['title'] as String,
       body = json['body'] as String,
       data = immutableJson(json['data'] as JsonMap? ?? {}),
-      deepLink = json['deepLink'] as String?;
+      deepLink = json['deepLink'] as String?,
+      collapseId = json['collapseId'] as String?,
+      threadId = json['threadId'] as String?,
+      ttlSeconds = json['ttlSeconds'] as int?,
+      priority = json['priority'] as String?,
+      ios = json['ios'] == null
+          ? null
+          : IosNotificationOptions.fromJson(json['ios'] as JsonMap),
+      android = json['android'] == null
+          ? null
+          : AndroidNotificationOptions.fromJson(json['android'] as JsonMap),
+      imageUrl = json['imageUrl'] as String?,
+      contentAvailable = json['contentAvailable'] as bool?;
 
   final int version;
   final String deliveryId;
@@ -185,6 +202,14 @@ class NotificationPayload {
   final String body;
   final JsonMap data;
   final String? deepLink;
+  final String? collapseId;
+  final String? threadId;
+  final int? ttlSeconds;
+  final String? priority;
+  final IosNotificationOptions? ios;
+  final AndroidNotificationOptions? android;
+  final String? imageUrl;
+  final bool? contentAvailable;
 }
 
 class NotificationEvent {
@@ -222,4 +247,32 @@ Object? _freeze(Object? value) {
   }
 
   return value;
+}
+
+class IosNotificationOptions {
+  IosNotificationOptions.fromJson(JsonMap json)
+    : sound = json['sound'] as String?,
+      hasSound = json.containsKey('sound'),
+      badge = json['badge'] as int?,
+      interruptionLevel = json['interruptionLevel'] as String?,
+      mutableContent = json['mutableContent'] as bool?,
+      subtitle = json['subtitle'] as String?;
+
+  final String? sound;
+  final bool hasSound;
+  final int? badge;
+  final String? interruptionLevel;
+  final bool? mutableContent;
+  final String? subtitle;
+}
+
+class AndroidNotificationOptions {
+  AndroidNotificationOptions.fromJson(JsonMap json)
+    : channelId = json['channelId'] as String?,
+      groupKey = json['groupKey'] as String?,
+      groupSummary = json['groupSummary'] as String?;
+
+  final String? channelId;
+  final String? groupKey;
+  final String? groupSummary;
 }

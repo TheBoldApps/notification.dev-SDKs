@@ -7,7 +7,7 @@ Android, iOS, Flutter, and Expo clients for notification.dev. Supports push noti
 | Android  | API 23+, JDK 17, Android SDK 36                            | [Setup](android/README.md) | [Android app](example/android-example/README.md) |
 | iOS      | iOS 15+, macOS, Xcode, Apple Silicon simulator             | [Setup](ios/README.md)     | [SwiftUI app](example/ios-example/README.md)     |
 | Flutter  | Flutter 3.44+, Dart 3.12+, native build tools              | [Setup](flutter/README.md) | [Flutter app](example/flutter-example/README.md) |
-| Expo     | Expo SDK 57, Android API 24+, iOS 16.4+, development build | [Setup](expo/README.md)    | [Expo app](example/expo-example/README.md)       |
+| Expo     | Expo SDK 57–58, Android API 24+, iOS 16.4+, development build | [Setup](expo/README.md)    | [Expo app](example/expo-example/README.md)       |
 
 Install the released SDK for your platform using the setup guides above.
 
@@ -46,3 +46,7 @@ The SDK, examples, and documentation in this repository are licensed under the
 [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.
 Third-party components retain their respective licenses. The hosted notification.dev
 service and its separate backend are not covered by this license.
+
+## Advanced push
+
+See the [advanced integration guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md) for platform options, app/environment routing, foreground suppression, images, credential revocation, and provider coexistence.

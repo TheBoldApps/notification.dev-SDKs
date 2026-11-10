@@ -10,7 +10,9 @@ internal class TransportException(val code: String, val retryable: Boolean, val 
     Exception("SDK request failed ($code)")
 
 internal interface Transport {
+    fun registrationBody(id: String, secret: String): String? = null
     suspend fun register(id: String, secret: String): Registration
+    suspend fun register(id: String, secret: String, body: String?): Registration = register(id, secret)
     suspend fun read(id: String, credential: String): ServerState
     suspend fun updateUser(id: String, credential: String, request: UserRequest): ServerState
     suspend fun sendEvent(id: String, credential: String, event: QueuedEvent)
@@ -37,11 +39,19 @@ internal class HttpTransport(
 
     fun close() = http.close()
 
-    override suspend fun register(id: String, secret: String): Registration {
-        val response = http.execute { api ->
-            api.registerInstallation(id, RegistrationInput(
-                projectId, id, secret, SubscribersPlatform.valueOf(platform.name), "0.2.0", metadata.toWire()
-            ))
+    private fun registrationInput(id: String, secret: String) = RegistrationInput(
+        projectId, id, secret, SubscribersPlatform.valueOf(platform.name), "0.2.0", metadata.toWire()
+    )
+
+    override fun registrationBody(id: String, secret: String): String =
+        requestJson.encodeToString(registrationInput(id, secret))
+
+    override suspend fun register(id: String, secret: String): Registration = register(id, secret, registrationBody(id, secret))
+
+    override suspend fun register(id: String, secret: String, body: String?): Registration {
+        val response = http.execute(rawBody = requireNotNull(body)) { api ->
+            // The captured JSON bypasses re-encoding so upgrades cannot change recovery input.
+            api.registerInstallation(id, registrationInput(id, secret))
         }
 
         return Registration(response.installationCredential, response.state.toState())
@@ -175,4 +185,10 @@ internal fun retryAfterMillis(value: String?, now: Long = currentTimeMillis()): 
     return runCatching { (value.fromHttpToGmtDate().timestamp - now).coerceIn(0, 86_400_000) }.getOrDefault(0L)
 }
 
-private fun DeviceMetadata.toWire() = SubscribersInstallationMetadata(appVersion = appVersion, osVersion = osVersion, locale = locale, timezone = timezone)
+private fun DeviceMetadata.toWire() = SubscribersInstallationMetadata(
+    appVersion = appVersion, osVersion = osVersion, locale = locale, timezone = timezone,
+    appIdentifier = appIdentifier,
+    apnsEnvironment = apnsEnvironment?.let { value -> SubscribersInstallationMetadata.ApnsEnvironment.entries.first { it.value == value } }
+)
+
+internal fun TransportException.isUnauthorized() = httpStatus == 401 || code == "HTTP_401" || code == "UNAUTHENTICATED"

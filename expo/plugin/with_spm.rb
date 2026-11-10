@@ -7,13 +7,34 @@ module NotificationDevExpo
   VERSION = '0.2.0'.freeze
 
   def self.attach(project, target)
-    package = project.root_object.package_references.find { |ref| ref.respond_to?(:repositoryURL) && ref.repositoryURL == URL }
+    local_path = ENV['NOTIFICATION_DEV_SWIFT_PACKAGE_PATH']
+    package = project.root_object.package_references.find do |ref|
+      local_path ? (ref.respond_to?(:relative_path) && ref.relative_path == local_path) : (ref.respond_to?(:repositoryURL) && ref.repositoryURL == URL)
+    end
     unless package
-      package = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
-      package.repositoryURL = URL
+      if local_path
+        raise 'notification.dev: local Swift package must contain Package.swift' unless File.file?(File.join(local_path, 'Package.swift'))
+        package = project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
+        package.relative_path = local_path
+      else
+        package = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
+        package.repositoryURL = URL
+      end
       project.root_object.package_references << package
     end
-    package.requirement = { 'kind' => 'exactVersion', 'version' => VERSION }
+    package.requirement = { 'kind' => 'exactVersion', 'version' => VERSION } unless local_path
+    if local_path
+      # A previous release-based pod install may already have registered this package.
+      project.root_object.package_references.to_a.each do |reference|
+        next unless reference.respond_to?(:repositoryURL) && reference.repositoryURL == URL
+        project.targets.each do |app_target|
+          app_target.package_product_dependencies.each do |product|
+            product.package = package if product.package == reference
+          end
+        end
+        reference.remove_from_project
+      end
+    end
     # The bridge archive already includes the static Swift package product.
     # Adding a product dependency here would produce duplicate symbols.
     target.build_configurations.each do |configuration|

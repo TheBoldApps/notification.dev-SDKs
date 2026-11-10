@@ -17,7 +17,11 @@ function nativeConfiguration(options = {}) {
   for (const key of ['androidChannelId', 'androidChannelName']) {
     if (options[key] !== undefined && (typeof options[key] !== 'string' || !options[key].trim())) throw new Error(`notification.dev: ${key} must be a nonempty string`);
   }
+  if (options.iosApnsEnvironment !== undefined && !['sandbox', 'production'].includes(options.iosApnsEnvironment)) {
+    throw new Error('notification.dev: iosApnsEnvironment must be sandbox or production');
+  }
   return {
+    ...(options.iosApnsEnvironment ? { iosApnsEnvironment: options.iosApnsEnvironment } : {}),
     projectId: options.projectId,
     baseUrl: url.toString(),
     androidSmallIcon: 'ic_notification_dev',
@@ -34,6 +38,17 @@ function configurePodfile(contents) {
     tag: 'notification-dev-spm', src: contents,
     newSrc: `    require File.join(File.dirname(Pod::Executable.execute_command('node', ['--print', "require.resolve('@notification.dev/expo/package.json')"]).strip), 'plugin', 'with_spm.rb')\n    NotificationDevExpo.install_swift_package(installer)`,
     anchor: /post_install do \|installer\|/, offset: 1, comment: '#',
+  }).contents;
+}
+
+function configureKotlinGradle(contents) {
+  // SDK 58 reads android.kotlinVersion directly; SDK 57 needs a pinned classpath.
+  if (/def kotlinVersion = findProperty\(['"]android.kotlinVersion['"]\)/.test(contents)) return contents;
+  return mergeContents({
+    tag: 'notification-dev-kotlin', src: contents,
+    newSrc: "    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.20')",
+    anchor: /classpath\(['"]org.jetbrains.kotlin:kotlin-gradle-plugin['"]\)/,
+    offset: 1, comment: '//',
   }).contents;
 }
 
@@ -59,12 +74,7 @@ function withNotificationDev(config, options = {}) {
     return config;
   });
   config = withProjectBuildGradle(config, config => {
-    config.modResults.contents = mergeContents({
-      tag: 'notification-dev-kotlin', src: config.modResults.contents,
-      newSrc: "    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.20')",
-      anchor: /classpath\(['"]org.jetbrains.kotlin:kotlin-gradle-plugin['"]\)/,
-      offset: 1, comment: '//',
-    }).contents;
+    config.modResults.contents = configureKotlinGradle(config.modResults.contents);
     return config;
   });
   config = withAndroidManifest(config, config => {
@@ -113,3 +123,4 @@ function withNotificationDev(config, options = {}) {
 module.exports = createRunOncePlugin(withNotificationDev, '@notification.dev/expo', require('../package.json').version);
 module.exports.nativeConfiguration = nativeConfiguration;
 module.exports.configurePodfile = configurePodfile;
+module.exports.configureKotlinGradle = configureKotlinGradle;

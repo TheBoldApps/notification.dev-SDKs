@@ -55,6 +55,11 @@ class NotificationDev {
   Future<void> login(String externalId) =>
       _invoke('login', {'externalId': externalId});
 
+  Future<void> suppressForegroundNotifications({JsonMap? matchingData}) =>
+      _invoke('suppressForegroundNotifications', {
+        'matchingData': matchingData == null ? null : jsonEncode(matchingData),
+      });
+
   Future<void> logout() => _invoke('logout');
 
   Future<void> setEmail(String address, {required bool optedIn}) =>

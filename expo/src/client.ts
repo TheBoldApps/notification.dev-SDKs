@@ -104,6 +104,7 @@ export class NotificationDevClient {
     } };
   }
 
+  suppressForegroundNotifications = (matchingData: JsonObject | null) => this.call<void>('suppressForegroundNotifications', { matchingData });
   getState = () => this.call<SdkState>('getState');
   getTags = () => this.call<Record<string, TagValue>>('getTags');
   getEmail = () => this.call<EmailSubscription | null>('getEmail');

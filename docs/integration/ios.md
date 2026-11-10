@@ -263,3 +263,7 @@ after identity changes. Server audiences can target one or up to 1,000 users; al
 registrations sharing an ID receive the same complete content state. Verify the
 widget on physical devices, including remote starts while backgrounded and
 login/logout. The previously published 0.2.0 release predates this feature.
+
+## Advanced push and coexistence
+
+See the [advanced integration guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md) for payload options, app/APNs routing, server-acknowledged `pushTokenRegistered`, foreground suppression, images, revocation, and provider forwarding. Native adapters provide these capabilities underneath Flutter and Expo.

@@ -44,7 +44,7 @@ internal fun httpErrorCode(body: String, status: Int): String {
 
 internal const val INSTALLATION_PATH_ID = "__notification_installation_id__"
 
-private val requestJson = Json(wireJson) { encodeDefaults = false }
+internal val requestJson = Json(wireJson) { encodeDefaults = false }
 
 /** One shared engine; each request captures its own authentication and client lifetime. */
 internal class ApiHttpClient(
@@ -61,7 +61,7 @@ internal class ApiHttpClient(
         }
     }
 
-    suspend inline fun <reified T : Any> execute(credential: String? = null, pathId: String? = null, deleteBody: JsonObject? = null, call: suspend (NativeSDKApi) -> HttpResponse<T>): T {
+    suspend inline fun <reified T : Any> execute(credential: String? = null, pathId: String? = null, deleteBody: JsonObject? = null, rawBody: String? = null, call: suspend (NativeSDKApi) -> HttpResponse<T>): T {
         require(pathId != "." && pathId != "..")
 
         val client = HttpClient(engine) {
@@ -92,6 +92,14 @@ internal class ApiHttpClient(
                 context.contentType(ContentType.Application.Json)
                 context.setBody(deleteBody)
                 proceedWith(deleteBody)
+            }
+        }
+
+        if (rawBody != null) {
+            client.requestPipeline.intercept(HttpRequestPipeline.Before) {
+                val body = io.ktor.http.content.TextContent(rawBody, ContentType.Application.Json)
+                context.setBody(body)
+                proceedWith(body)
             }
         }
 

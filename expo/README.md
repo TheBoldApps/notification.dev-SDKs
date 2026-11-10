@@ -6,7 +6,7 @@ TypeScript API over the **released** notification.dev native SDKs. Android uses
 checksum-verified Kotlin core XCFramework. The npm package contains bridge and
 configuration code only, with no native SDK sources or binaries.
 
-Initial compatibility: Expo SDK 57 / React Native 0.86, Android API 24+, iOS
+Compatibility: Expo SDK 57–58; the example pins SDK 58 / React Native 0.88, Android API 24+, iOS
 16.4+, and Apple Silicon simulators. Requires a development or production build;
 Expo Go, web, and desktop are unsupported. Bare React Native apps require Expo
 modules and equivalent native configuration.
@@ -161,10 +161,13 @@ Other methods include `logout()`, `removeTags(keys)`, `removeEmail()`,
 `setEmailOptedIn(enabled)`, `getPushPermissionStatus()`, and `openPushSettings()`.
 Opening settings does not confirm permission.
 
-This version requires exclusive push callback ownership. Do not combine it with
-`expo-notifications`, `@react-native-firebase/messaging`, a custom Firebase service,
-or another notification center delegate. The plugin rejects known conflicting
-packages; iOS reports delegate conflicts. Manual integration is not supported.
+The SDK handles messages carrying `notification_dev`. Its iOS delegate forwarder
+passes unrelated notifications to the previous delegate. Initialize other provider
+delegates first. The optional OneSignal example demonstrates coexistence without
+intercepting OneSignal's Android receiver. The plugin still rejects
+`expo-notifications` and `@react-native-firebase/messaging`, which require separate
+host callback/service integration. See the
+[coexistence guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md#coexistence-with-another-push-provider).
 
 See [shared semantics](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/README.md#shared-behavior) and
 [payload formats](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/contract/README.md#push-payloads). Android requires data-only
@@ -202,7 +205,7 @@ JavaScript/types, bridge sources, config plugin, module configuration, and
 documentation/licenses, without credentials, generated native projects, or
 native SDK binaries.
 
-Install the tarball by absolute path in a separate clean Expo 57 app. Configure
+Install the tarball by absolute path in a separate clean Expo 58 app. Configure
 the plugin and build Android and iOS using the released native SDKs; see the
 [example's build and device checks](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/example/expo-example/README.md#build-verification).
 Verify registration, delivery, and notification taps on configured devices.
@@ -225,7 +228,11 @@ For future releases, update the package version and substitute the new version
 in the tarball name and verification commands. Confirm native dependency pins
 still reference available, compatible releases.
 
-Finally, run `npx expo install @notification.dev/expo@0.2.0` in a clean Expo 57
+Finally, run `npx expo install @notification.dev/expo@0.2.0` in a clean Expo 58
 app and repeat native builds to verify installation from the registry.
 
 Copyright 2026 The Bold Apps, LLC. Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+## Advanced push
+
+See the [advanced integration guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md) for platform options, app/environment routing, foreground suppression, images, credential revocation, and provider coexistence.

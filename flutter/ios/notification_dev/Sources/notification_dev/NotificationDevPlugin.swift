@@ -13,6 +13,7 @@ private struct PluginConfiguration: Codable, Equatable {
     let allowHttp: Bool
     let loggingEnabled: Bool
     let automaticIntegration: Bool
+    var iosApnsEnvironment: ApnsEnvironment?
 
     var native: SdkConfig {
         get throws {
@@ -20,7 +21,8 @@ private struct PluginConfiguration: Codable, Equatable {
 
             return SdkConfig(
                 projectId: projectId, baseURL: url, allowHTTP: allowHttp,
-                loggingEnabled: loggingEnabled, displayInForeground: displayInForeground)
+                loggingEnabled: loggingEnabled, displayInForeground: displayInForeground,
+                apnsEnvironment: iosApnsEnvironment)
         }
     }
 }
@@ -82,13 +84,19 @@ private enum NativeStartup {
 
     static func start(_ config: PluginConfiguration) throws {
         if let existing = configuration {
-            guard existing == config else { throw BridgeFailure.configurationChanged }
-            return
+            var comparable = config
+            comparable.iosApnsEnvironment = existing.iosApnsEnvironment
+            guard existing == comparable else { throw BridgeFailure.configurationChanged }
+            if existing == config { return }
         }
         let nativeConfig = try config.native
+        let previous = task
         configuration = config
         task = Task {
-            do { return try await NativeSdk.initialize(nativeConfig) } catch {
+            do {
+                _ = try await previous?.value
+                return try await NativeSdk.initialize(nativeConfig)
+            } catch {
                 configuration = nil
                 task = nil
                 throw error
@@ -117,6 +125,9 @@ public final class NotificationDevPlugin: NSObject, @preconcurrency FlutterPlugi
     private var channels: [FlutterEventChannel] = []
     private var initialized = false
     private var tasks: [UUID: Task<Void, Never>] = [:]
+    private lazy var notificationDelegate = NotificationDelegateForwarder(
+        client: { try await NativeStartup.client() },
+        diagnostic: { [weak self] in self?.streams["diagnostics"]?.report($0) })
     private weak var appDelegate: (NSObjectProtocol & UNUserNotificationCenterDelegate)?
 
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -143,11 +154,8 @@ public final class NotificationDevPlugin: NSObject, @preconcurrency FlutterPlugi
 
     private func installNotificationDelegate() throws {
         let center = UNUserNotificationCenter.current()
-        guard let appDelegate else { throw BridgeFailure.delegateConflict }
-        if let current = center.delegate, current !== appDelegate {
-            throw BridgeFailure.delegateConflict
-        }
-        center.delegate = appDelegate
+        if center.delegate == nil { center.delegate = appDelegate }
+        notificationDelegate.install(on: center)
     }
 
     // Flutter broadcasts notification-center callbacks to every responding plugin.
@@ -159,7 +167,11 @@ public final class NotificationDevPlugin: NSObject, @preconcurrency FlutterPlugi
             "userNotificationCenter:willPresentNotification:withCompletionHandler:",
             "userNotificationCenter:didReceiveNotificationResponse:withCompletionHandler:",
         ]
-        if callbacks.contains(NSStringFromSelector(selector)),
+        let name = NSStringFromSelector(selector)
+        // The forwarder handles owned notifications directly. Forwarded Flutter broadcasts
+        // must skip this plugin to avoid recursion and multiple completions.
+        if name.hasPrefix("userNotificationCenter:") { return false }
+        if callbacks.contains(name),
             NativeStartup.configuration?.automaticIntegration != true
         {
             return false
@@ -208,6 +220,10 @@ public final class NotificationDevPlugin: NSObject, @preconcurrency FlutterPlugi
                     result(nil)
                 case "setEmailOptedIn":
                     try await sdk.setEmailOptedIn(try boolean(arguments, "enabled"))
+                    result(nil)
+                case "suppressForegroundNotifications":
+                    let values = try (arguments["matchingData"] as? String).map { try decode([String: JSONValue].self, $0) }
+                    try sdk.suppressForegroundNotifications(matchingData: values)
                     result(nil)
                 case "setPushOptedIn":
                     try await sdk.setPushOptedIn(try boolean(arguments, "enabled"))
@@ -304,40 +320,7 @@ public final class NotificationDevPlugin: NSObject, @preconcurrency FlutterPlugi
         }
     }
 
-    public nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification,
-        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
-    ) {
-        Task { @MainActor in
-            guard NativeStartup.configuration?.automaticIntegration == true else {
-                completionHandler([])
-                return
-            }
-            do {
-                let sdk = try await NativeStartup.client()
-                let options = await sdk.presentationOptions(for: notification)
-                completionHandler(options ?? [.banner, .sound, .badge])
-            } catch {
-                streams["diagnostics"]?.report(error)
-                let owned = notification.request.content.userInfo["notification_dev"] != nil
-                completionHandler(owned ? [] : [.banner, .sound, .badge])
-            }
-        }
-    }
 
-    public nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void
-    ) {
-        Task { @MainActor in
-            defer { completionHandler() }
-            guard NativeStartup.configuration?.automaticIntegration == true else { return }
-            do { _ = try await NativeStartup.client().handleResponse(response) } catch {
-                streams["diagnostics"]?.report(error)
-            }
-        }
-    }
 }
 
 @MainActor

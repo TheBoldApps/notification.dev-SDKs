@@ -68,7 +68,7 @@ Building the SDK locally requires macOS, Xcode, JDK 17, and Android SDK 36.
 From the repository root:
 
 ```sh
-./gradlew :core:prepareSwiftPackage
+./gradlew :core:stageSwiftFramework
 ```
 
 Add `ios/` as a local Swift package in Xcode and link `NotificationDev`. Rebuild after core or contract changes; the XCFramework is ignored by Git.
@@ -129,3 +129,21 @@ HTTPS is required by default. Explicitly set `allowHttp: true` (Swift:
 `allowHTTP: true`) to permit HTTP to any host, including private LAN IPs. Configure
 Android cleartext policy or iOS App Transport Security in the host app as needed;
 the SDK option does not override OS restrictions.
+
+### Test unreleased native changes through Flutter or Expo
+
+Set `NOTIFICATION_DEV_SWIFT_PACKAGE_PATH` to the absolute `ios/` directory in
+this checkout for Flutter iOS builds and Expo `pod install`. Build the local
+XCFramework first with `./gradlew :core:stageSwiftFramework`. Omit the variable
+for published dependencies. Regenerate/resolve packages when changing the path.
+
+For Expo Android, composite builds require the same Android Gradle plugin
+version in the host and SDK. When they differ, publish locally instead:
+
+```sh
+./gradlew :core:publishAndroidPublicationToMavenLocal :core:publishKotlinMultiplatformPublicationToMavenLocal :android:publishMavenPublicationToMavenLocal
+```
+
+Add `mavenLocal()` before remote repositories in the generated host build for
+that local test only. Remove this override for release verification. Local Maven
+publication does not upload artifacts to Maven Central.

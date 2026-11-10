@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
@@ -28,7 +29,8 @@ import kotlinx.coroutines.runBlocking
 internal class NotificationPresenter(
     private val context: Context,
     private val config: SdkConfig,
-    private val encodePayload: (NotificationPayload) -> String
+    private val encodePayload: (NotificationPayload) -> String,
+    private val diagnostic: (SdkError) -> Unit = {}
 ) {
     companion object {
         const val EXTRA_PAYLOAD = "dev.notification.sdk.payload"
@@ -63,7 +65,7 @@ internal class NotificationPresenter(
         )
     }
 
-    fun display(payload: NotificationPayload) {
+    fun display(payload: NotificationPayload, image: Bitmap? = null) {
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS
@@ -71,6 +73,15 @@ internal class NotificationPresenter(
         ) return
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
             return
+        }
+        val channelId = payload.android?.channelId ?: config.channelId
+        if (Build.VERSION.SDK_INT >= 26) {
+            val channel = context.getSystemService(NotificationManager::class.java).getNotificationChannel(channelId)
+            if (channel == null) {
+                diagnostic(SdkError("NOTIFICATION_CHANNEL_MISSING", "Requested notification channel is not registered"))
+                return
+            }
+            if (channel.importance == NotificationManager.IMPORTANCE_NONE) return
         }
         val intent = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return
         val raw = encodePayload(payload)
@@ -85,11 +96,25 @@ internal class NotificationPresenter(
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = NotificationCompat.Builder(context, config.channelId)
+        val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(config.smallIcon).setContentTitle(payload.title).setContentText(payload.body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(payload.body)).setAutoCancel(true)
-            .setContentIntent(pending).setOnlyAlertOnce(true).build()
-        NotificationManagerCompat.from(context).notify(TAG + payload.deliveryId, 0, notification)
+            .setTimeoutAfter((payload.expiresAt - System.currentTimeMillis()).coerceAtLeast(1))
+            .setContentIntent(pending).setOnlyAlertOnce(true)
+        payload.android?.groupKey?.let { builder.setGroup(it) }
+        if (image != null) builder.setStyle(NotificationCompat.BigPictureStyle().bigPicture(image).setSummaryText(payload.body))
+        val manager = NotificationManagerCompat.from(context)
+        manager.notify(notificationTag(payload), 0, builder.build())
+        val group = payload.android?.groupKey
+        val summary = payload.android?.groupSummary
+        if (group != null && summary != null) {
+            val notification = NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(config.smallIcon).setContentTitle(payload.title).setContentText(summary)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(summary))
+                .setGroup(group).setGroupSummary(true).setAutoCancel(true)
+                .setContentIntent(pending).setOnlyAlertOnce(true).build()
+            manager.notify(TAG + "group:" + payload.associationId + ":" + group, 0, notification)
+        }
     }
 
     fun clear() {
@@ -97,6 +122,9 @@ internal class NotificationPresenter(
         manager.activeNotifications.filter { it.tag?.startsWith(TAG) == true }.forEach { manager.cancel(it.tag, it.id) }
     }
 }
+
+internal fun notificationTag(payload: NotificationPayload): String = NotificationPresenter.TAG +
+    if (payload.collapseId != null) "collapse:${payload.associationId}:${payload.collapseId}" else "delivery:${payload.deliveryId}"
 
 class NotificationMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {

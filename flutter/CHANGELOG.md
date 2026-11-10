@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Preserve advanced push options in notification and tap models.
+- Add APNs routing configuration, foreground data filtering, and server-acknowledged push registration state.
+- Forward unrelated iOS notifications to the previous delegate.
+
 ## 0.2.0
 
 - Breaking: replace `allowLocalhostHttp` with `allowHttp`, defaulting to false. Explicit opt-in now permits HTTP for any host, including private LAN addresses.

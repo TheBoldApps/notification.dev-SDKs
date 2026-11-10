@@ -86,7 +86,7 @@ final class BridgeTests: XCTestCase {
     ) throws -> IosBridge {
         try IosBridge(
             projectId: "project", baseUrl: baseURL, allowHttp: allowHttp,
-            loggingEnabled: false, appVersion: "1", osVersion: "15", locale: "en", timezone: "UTC",
+            loggingEnabled: false, appVersion: "1", osVersion: "15", locale: "en", timezone: "UTC", appIdentifier: nil, apnsEnvironment: nil,
             load: { [self] in
                 if loadFailure { return "{\"error\":\"locked\"}" }
                 let data = try! JSONEncoder().encode(["value": saved.map(JSONValue.string) ?? .null])

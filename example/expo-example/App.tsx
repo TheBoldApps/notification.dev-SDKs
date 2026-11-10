@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Button, ScrollView, Text, TextInput, View } from 'react-native';
 import { NotificationDev, SdkState, Subscription } from '@notification.dev/expo';
+import { OneSignal } from 'react-native-onesignal';
+import { updatePushProvider } from './coexistence';
 
 export default function App() {
   const [state, setState] = useState<SdkState>();
@@ -10,6 +12,8 @@ export default function App() {
   const [opened, setOpened] = useState<string[]>([]);
   const [client, setClient] = useState<Awaited<ReturnType<typeof NotificationDev.initialize>>>();
   useEffect(() => {
+    const legacyAppId = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID;
+    if (legacyAppId) OneSignal.initialize(legacyAppId);
     let active = true;
     const subscriptions: Subscription[] = [];
     NotificationDev.initialize().then(sdk => {
@@ -42,6 +46,12 @@ export default function App() {
       <Button title="Set example tag" onPress={() => run(() => client.setTags({ source: 'expo-example' }))} />
       <Button title="Track example event" onPress={() => run(() => client.track('example.button_clicked', { source: 'expo' }))} />
       <Button title={state?.pushOptedIn ? 'Opt out of push' : 'Opt into push'} onPress={() => run(() => client.setPushOptedIn(!state?.pushOptedIn))} />
+      <Button title="Suppress foreground conversation 42" onPress={() => run(() => client.suppressForegroundNotifications({ conversationId: '42' }))} />
+      <Button title="Clear foreground suppression" onPress={() => run(() => client.suppressForegroundNotifications(null))} />
+      {process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID && <>
+        <Button title="Use notification.dev after registration" onPress={() => run(() => updatePushProvider(client, true, externalId || null))} />
+        <Button title="Roll back to OneSignal" onPress={() => run(() => updatePushProvider(client, false, externalId || null))} />
+      </>}
       <Button title="Refresh" onPress={() => run(() => client.refresh())} />
       {opened.map(open => <View key={open}>
         <Text>{open}</Text>

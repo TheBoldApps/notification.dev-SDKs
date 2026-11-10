@@ -63,7 +63,8 @@ internal object NativeStartup {
     }
 
     fun checkConfiguration(values: JsonObject) {
-        if (configuration != null && configuration != values) {
+        val previous = configuration?.filterKeys { it != "iosApnsEnvironment" }
+        if (previous != null && previous != values.filterKeys { it != "iosApnsEnvironment" }) {
             throw dev.notification.sdk.SdkException(dev.notification.sdk.SdkError(
                 "CONFIGURATION_CHANGED", "SDK already initialized with different configuration"))
         }

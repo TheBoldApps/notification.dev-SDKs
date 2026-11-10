@@ -13,7 +13,8 @@ final class LiveActivitiesTests: XCTestCase {
             associationId: association, externalId: nil, lastSyncedAt: nil, syncing: false,
             hasPendingChanges: false, pushOptedIn: true,
             pushRegistration: .init(status: "unknown", errorCode: nil, updatedAt: nil),
-            permission: .init(areNotificationsEnabled: false), lastError: nil, identityChangePending: pending)
+            permission: .init(areNotificationsEnabled: false), lastError: nil, identityChangePending: pending,
+            pushTokenRegistered: false)
     }
 
     private func settle(_ condition: () -> Bool, file: StaticString = #filePath, line: UInt = #line) async {

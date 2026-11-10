@@ -20,6 +20,23 @@ class TransportTest {
     private val config = CoreConfig("project", "https://example.com/prefix/")
     private val state = ServerState("installation", "association", SubscriberState("user"), revision = 1, updatedAt = "now")
 
+    @Test fun bootstrapUsesTheExactPersistedBodyRatherThanCurrentMetadata() = runTest {
+        var sent: String? = null
+        val engine = MockEngine { request ->
+            sent = (request.body as TextContent).text
+            respond(wireJson.encodeToString(Registration("credential", state)))
+        }
+        val transport = HttpTransport(config, DeviceMetadata(appVersion = "new"), client = engine)
+        try {
+            val captured = """{"projectId":"project","installationId":"installation","registrationSecret":"secret","platform":"android","sdkVersion":"old","metadata":{"appVersion":"old"}}"""
+            transport.register("installation", "secret", captured)
+            assertEquals(captured, sent)
+            val fresh = wireJson.parseToJsonElement(transport.registrationBody("installation", "secret")).jsonObject
+            assertEquals(JsonPrimitive("new"), fresh["metadata"]!!.jsonObject["appVersion"])
+            assertNull(fresh["metadata"]!!.jsonObject["apnsEnvironment"])
+        } finally { transport.close() }
+    }
+
     @Test
     fun transmitsRegistrationFailuresAndDecodesServerHealth() = runTest {
         val requests = mutableListOf<HttpRequestData>()

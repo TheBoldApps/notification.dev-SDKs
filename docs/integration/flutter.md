@@ -178,3 +178,7 @@ Use a disposable project and a signed app on a device with matching providers:
 
 Copyright 2026 The Bold Apps, LLC. Licensed under
 [Apache-2.0](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/LICENSE).
+
+## Advanced push and coexistence
+
+See the [advanced integration guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md) for payload options, app/APNs routing, server-acknowledged `pushTokenRegistered`, foreground suppression, images, revocation, and provider forwarding. Native adapters provide these capabilities underneath Flutter and Expo.

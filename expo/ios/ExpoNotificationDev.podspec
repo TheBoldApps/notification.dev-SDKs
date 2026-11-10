@@ -19,7 +19,7 @@ Pod::Spec.new do |s|
   # `pod ipc spec` (used for autolinking discovery) runs outside the Podfile.
   if defined?(spm_dependency)
     spm_dependency(s,
-      url: 'https://github.com/TheBoldApps/notification.dev-SDKs.git',
+      url: ENV.fetch('NOTIFICATION_DEV_SWIFT_PACKAGE_PATH', 'https://github.com/TheBoldApps/notification.dev-SDKs.git'),
       requirement: { kind: 'exactVersion', version: '0.2.0' },
       products: ['NotificationDev'])
   end

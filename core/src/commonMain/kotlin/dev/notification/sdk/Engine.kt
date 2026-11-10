@@ -122,7 +122,7 @@ internal class Engine(
     }
 
     private fun localUser(): UserProperties {
-        if (data.identity.isLoggingOut) {
+        if (data.identity.isLoggingOut || data.credentialRevoked) {
             return UserProperties()
         }
         val user = data.snapshot?.user
@@ -131,7 +131,7 @@ internal class Engine(
     }
 
     private fun publish(lastError: SdkError? = state.value.lastError) {
-        val visible = data.snapshot.takeIf { !data.identity.isLoggingOut }
+        val visible = data.snapshot.takeIf { !data.identity.isLoggingOut && !data.credentialRevoked }
         mutableState.value = state.value.copy(
             availability = if (visible != null) Availability.AVAILABLE else Availability.UNAVAILABLE,
             user = localUser(),
@@ -142,13 +142,14 @@ internal class Engine(
             hasPendingChanges = !data.user.changes.isEmpty || data.events.isNotEmpty() || data.pendingDevice != null ||
                 data.identity.isPending || data.liveActivities.requests.isNotEmpty(),
             pushOptedIn = data.device.optedIn,
+            pushTokenRegistered = visible?.push?.tokenRegistered == true,
             pushRegistration = data.device.registration?.let { local ->
                 visible?.push?.registration?.takeIf { it.status == local.status && it.errorCode == local.errorCode } ?: local
             } ?: visible?.push?.registration ?: PushRegistration(),
             lastError = lastError,
             identityChangePending = data.identity.isPending
         )
-        mutableOpens.value = if (!data.identity.isLoggingOut) data.opens else emptyList()
+        mutableOpens.value = if (!data.identity.isLoggingOut && !data.credentialRevoked) data.opens else emptyList()
     }
 
     private fun report(code: String) {
@@ -203,7 +204,7 @@ internal class Engine(
     }
 
     private fun flushAppOpen() {
-        if (!foreground || !pendingAppOpen || data.identity.isPending) {
+        if (!foreground || !pendingAppOpen || data.identity.isPending || data.credentialRevoked) {
             return
         }
 
@@ -221,8 +222,22 @@ internal class Engine(
 
     // All HTTP paths hold network, but acquire mutex only to capture/apply state.
     private suspend fun register() {
-        val before = mutex.withLock { data.takeIf { it.credential == null } } ?: return
-        val response = transport.register(before.installationId, before.registrationSecret)
+        val before = mutex.withLock {
+            if (data.credentialRevoked && !data.identity.isLoggingOut) sdkFailure("UNAUTHENTICATED")
+            if (data.credentialRevoked && data.identity.isLoggingOut && data.credential == null) {
+                // Recovery itself can be revoked after a lost bootstrap response.
+                data = StoredState(newId(), registrationSecret(), configurationId = data.configurationId,
+                    identity = data.identity, device = data.device)
+            }
+            if (data.credential != null) return
+            if (data.registrationBody == null) {
+                data = data.copy(registrationBody = transport.registrationBody(data.installationId, data.registrationSecret))
+            }
+            // Also retry the save after an earlier write failure. Never submit an unsaved bootstrap body.
+            if (data.registrationBody != null) store.save(data)
+            data
+        }
+        val response = transport.register(before.installationId, before.registrationSecret, before.registrationBody)
         mutex.withLock {
             validate(response.state)
             if (response.installationCredential.isBlank()) {
@@ -289,9 +304,16 @@ internal class Engine(
         if (error is CancellationException) {
             throw error
         }
+        if (error is TransportException && error.isUnauthorized()) {
+            discardUserWork()
+            pendingAppOpen = false
+            data = data.copy(credentialRevoked = true, pendingDevice = null,
+                snapshot = data.snapshot?.copy(user = SubscriberState("revoked")),
+                identity = IdentityState(), liveActivities = LiveActivityStorage())
+        }
         logger.error("SDK synchronization failed", error)
         report(when (error) {
-            is TransportException -> error.code
+            is TransportException -> if (error.isUnauthorized()) "UNAUTHENTICATED" else error.code
             is SdkException -> error.error.code
             else -> "LOCAL_FAILURE"
         })
@@ -414,6 +436,7 @@ internal class Engine(
     }
 
     private suspend fun change(edit: UserChanges.(Long) -> UserChanges) = mutex.withLock {
+        if (data.credentialRevoked) sdkFailure("UNAUTHENTICATED")
         data.identity.requireSettled()
         data = data.copy(user = data.user.edit(edit))
         persist(lastError = null)
@@ -441,6 +464,7 @@ internal class Engine(
     }
 
     suspend fun track(name: String, properties: JsonObject, id: String): String = mutex.withLock {
+        if (data.credentialRevoked) sdkFailure("UNAUTHENTICATED")
         data.identity.requireSettled()
         if (!addEvent(QueuedEvent(id, data.snapshot?.associationId, Event.Track(name, properties, now())))) {
             sdkFailure("QUEUE_FULL")
@@ -480,7 +504,18 @@ internal class Engine(
     }
 
     suspend fun updateMetadata(metadata: DeviceMetadata) = mutex.withLock {
-        updateDevice(data.device.copy(metadata = metadata))
+        val previous = data.device.metadata
+        val next = metadata.copy(
+            appIdentifier = metadata.appIdentifier ?: previous?.appIdentifier,
+            apnsEnvironment = metadata.apnsEnvironment ?: previous?.apnsEnvironment
+        )
+        if (data.snapshot != null &&
+            (next.appIdentifier != previous?.appIdentifier || next.apnsEnvironment != previous?.apnsEnvironment)) {
+            data = data.copy(routingMetadataPending = true, liveActivities = LiveActivityStorage(
+                bindings = data.liveActivities.bindings.mapValues { (_, binding) -> binding.copy(stopped = true) }
+            ))
+        }
+        updateDevice(data.device.copy(metadata = next))
     }
 
     suspend fun reportPushRegistrationFailure(code: String) = mutex.withLock {
@@ -488,6 +523,11 @@ internal class Engine(
     }
 
     private suspend fun updateDevice(device: DeviceProperties, retryRejected: Boolean = false) {
+        if (data.credentialRevoked) {
+            data = data.copy(device = device, pendingDevice = null)
+            persist()
+            return
+        }
         if (device == data.device && (!retryRejected || data.pendingDevice?.rejected != true)) {
             publish()
 
@@ -520,11 +560,14 @@ internal class Engine(
             logger.debug("Backend acknowledged push registration")
             mutex.withLock {
                 refreshRequested = true
-                data = data.copy(pendingDevice = if (data.device == request.device) null else PendingDevice())
+                data = data.copy(
+                    pendingDevice = if (data.device == request.device) null else PendingDevice(),
+                    routingMetadataPending = data.routingMetadataPending && request.device.metadata != data.device.metadata
+                )
                 persist()
             }
         } catch (e: TransportException) {
-            if (e.retryable) {
+            if (e.retryable || e.isUnauthorized()) {
                 throw e
             }
             mutex.withLock {
@@ -564,7 +607,7 @@ internal class Engine(
                 }
             }
         } catch (e: TransportException) {
-            if (e.retryable) {
+            if (e.retryable || e.isUnauthorized()) {
                 throw e
             }
             mutex.withLock {
@@ -603,7 +646,7 @@ internal class Engine(
             try {
                 transport.sendEvent(before.installationId, before.credential!!, event)
             } catch (e: TransportException) {
-                if (e.retryable) {
+                if (e.retryable || e.isUnauthorized()) {
                     throw e
                 }
                 mutex.withLock { report(e.code) }
@@ -632,6 +675,7 @@ internal class Engine(
             if (mutex.withLock { data.identity.isLoggingIn }) {
                 return@withLock SyncResult.Done
             }
+            if (mutex.withLock { data.routingMetadataPending }) syncPush()
             syncLiveActivities()
             syncPush()
             val updated = syncUser()
@@ -641,7 +685,8 @@ internal class Engine(
             }
             mutex.withLock {
                 val pending = data.identity.isLoggingOut || data.pendingDevice?.rejected == false ||
-                    data.user.needsSync || data.events.isNotEmpty() || data.liveActivities.requests.isNotEmpty()
+                    data.user.needsSync || data.events.isNotEmpty() ||
+                    (!data.routingMetadataPending && data.liveActivities.requests.isNotEmpty())
 
                 if (pending) SyncResult.Pending else SyncResult.Done
             }
@@ -656,6 +701,7 @@ internal class Engine(
 
     suspend fun bindLiveActivity(activityId: String) = mutex.withLock {
         validateLiveActivityText(activityId)
+        if (data.credentialRevoked) sdkFailure("UNAUTHENTICATED")
         data.identity.requireSettled()
         val association = data.snapshot?.associationId ?: sdkFailure("LIVE_ACTIVITY_NOT_READY")
         val binding = data.liveActivities.bindings[activityId]
@@ -671,6 +717,7 @@ internal class Engine(
     }
 
     suspend fun liveActivity(kind: String, target: String, body: JsonObject) = mutex.withLock {
+        if (data.credentialRevoked) sdkFailure("UNAUTHENTICATED")
         data.identity.requireSettled()
         val association = data.snapshot?.associationId
         if (kind != "start") {
@@ -697,7 +744,7 @@ internal class Engine(
         // Bound each pass so frequently rotating tokens cannot starve other SDK work.
         repeat(32) {
             val before = mutex.withLock {
-                if (data.identity.isPending) return
+                if (data.identity.isPending || data.routingMetadataPending) return
                 val live = data.liveActivities
                 val first = live.requests.firstOrNull() ?: return
                 val association = data.snapshot!!.associationId
@@ -716,7 +763,7 @@ internal class Engine(
             try {
                 transport.liveActivity(before.installationId, before.credential!!, request)
             } catch (error: TransportException) {
-                if (error.retryable) throw error
+                if (error.retryable || error.isUnauthorized()) throw error
                 mutex.withLock { report(error.code) }
             }
             mutex.withLock {
@@ -766,7 +813,7 @@ internal class Engine(
     }
 
     private fun eligible(payload: NotificationPayload): Boolean =
-        payload.version == 1 && !data.identity.isPending && data.device.optedIn &&
+        payload.version == 1 && !data.credentialRevoked && !data.identity.isPending && data.device.optedIn &&
             payload.expiresAt > now() && payload.associationId == data.snapshot?.associationId
 
     private fun interaction(payload: NotificationPayload, kind: String) {

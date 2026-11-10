@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "deliveryId": "00000000-0000-4000-8000-000000000005",
+  "associationId": "00000000-0000-4000-8000-000000000003",
+  "expiresAt": 2000000000000,
+  "title": "Hello",
+  "body": "Your notification is ready.",
+  "data": {
+    "orderId": "order-123"
+  },
+  "deepLink": "example://orders/order-123",
+  "collapseId": "conversation:42",
+  "threadId": "conversation:42",
+  "ttlSeconds": 3600,
+  "priority": "high",
+  "ios": {
+    "sound": null,
+    "badge": 2,
+    "interruptionLevel": "active",
+    "mutableContent": true,
+    "subtitle": "New message"
+  },
+  "android": {
+    "channelId": "messages",
+    "groupKey": "conversation:42",
+    "groupSummary": "Two unread messages"
+  },
+  "imageUrl": "https://example.com/notification.png",
+  "contentAvailable": true
+}

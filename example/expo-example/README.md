@@ -1,6 +1,6 @@
 # Expo example
 
-Expo SDK 57 app using the bridge under `../../expo` and the **released** native
+Expo SDK 58 app using the bridge under `../../expo` and the **released** native
 SDKs. No Gradle composite build or local Swift package is used.
 
 ```sh
@@ -60,3 +60,16 @@ the Expo bridge, config plugin, TypeScript API, and docs.
 
 Real delivery requires configured providers and devices. Simulator builds alone
 do not prove delivery.
+
+## Optional provider coexistence
+
+The example pins `react-native-onesignal` 5.5.17 and `onesignal-expo-plugin` 2.8.0.
+Set `EXPO_PUBLIC_ONESIGNAL_APP_ID` before prebuild and runtime to enable it. Set
+`NOTIFICATION_DEV_APNS_ENVIRONMENT` to `sandbox` or `production` to match signing.
+The provider-switch buttons are illustrative: the application owns authenticated
+account sequencing and its remote rollout flag. The switch verifies
+`pushTokenRegistered`, pending changes and identity before opting out of OneSignal.
+See [advanced integration](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md).
+
+When testing these unreleased source changes, use local native SDK overrides as
+well as the local npm bridge; a released 0.2.0 native binary lacks the new APIs.

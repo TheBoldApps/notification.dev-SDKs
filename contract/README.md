@@ -1,6 +1,6 @@
 # SDK HTTP contract
 
-[openapi.json](openapi.json) is the SDK-only snapshot exported from the backend. It contains native SDK operations and their referenced schemas. Fixtures: [state](state.example.json) and [notification](notification.example.json).
+[openapi.json](openapi.json) is the SDK-only snapshot exported from the backend. It contains native SDK operations, their referenced schemas, and the push envelope delivered outside HTTP. Fixtures: [state](state.example.json), [notification](notification.example.json), and [advanced notification](notification.advanced.example.json).
 
 ## Protocol
 

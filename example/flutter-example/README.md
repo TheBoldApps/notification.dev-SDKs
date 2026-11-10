@@ -24,3 +24,10 @@ Use a disposable project:
 - Opt out or log out; verify SDK-owned notifications clear.
 
 Real APNs delivery requires signing and a device. Mock-channel tests do not establish push delivery.
+
+For an explicit APNs route, pass
+`--dart-define=NOTIFICATION_DEV_APNS_ENVIRONMENT=sandbox` (or `production` for
+distribution signing) to Flutter. Omit it to use native profile detection or the
+legacy route. Updating this option preserves the installation and user identity.
+For unreleased native sources, set `NOTIFICATION_DEV_SWIFT_PACKAGE_PATH` to this
+repository's absolute `ios/` path when building for iOS.

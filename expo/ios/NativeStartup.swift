@@ -26,12 +26,12 @@ enum BridgeFailure: Error {
 @MainActor
 enum NativeStartup {
   static var task: Task<NotificationDev, Error>?
-  static let delegate = NotificationDelegate()
+  static let delegate = NotificationDelegateForwarder(
+    client: { try await NativeStartup.client() },
+    diagnostic: { NotificationCenter.default.post(name: bridgeDiagnostic, object: $0) })
 
   static func client() async throws -> NotificationDev {
-    let center = UNUserNotificationCenter.current()
-    if let current = center.delegate, current !== delegate { throw BridgeFailure.delegateConflict }
-    center.delegate = delegate
+    delegate.install()
     if task == nil {
       guard let values = Bundle.main.object(forInfoDictionaryKey: "NotificationDev") as? [String: Any],
         let projectId = values["projectId"] as? String,
@@ -43,7 +43,8 @@ enum NativeStartup {
       task = Task {
         try await NotificationDev.initialize(SdkConfig(
           projectId: projectId, baseURL: url, allowHTTP: allowHttp,
-          loggingEnabled: loggingEnabled, displayInForeground: displayInForeground))
+          loggingEnabled: loggingEnabled, displayInForeground: displayInForeground,
+          apnsEnvironment: (values["iosApnsEnvironment"] as? String).flatMap(ApnsEnvironment.init(rawValue:))))
       }
     }
     do { return try await task!.value }
@@ -76,35 +77,6 @@ public final class NotificationDevAppDelegateSubscriber: ExpoAppDelegateSubscrib
 }
 
 let bridgeDiagnostic = Notification.Name("dev.notification.expo.diagnostic")
-
-@MainActor
-final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
-  nonisolated func userNotificationCenter(
-    _ center: UNUserNotificationCenter, willPresent notification: UNNotification,
-    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
-  ) {
-    Task { @MainActor in
-      do {
-        let sdk = try await NativeStartup.client()
-        completionHandler(await sdk.presentationOptions(for: notification) ?? [.banner, .sound, .badge])
-      } catch {
-        NotificationCenter.default.post(name: bridgeDiagnostic, object: error)
-        completionHandler(notification.request.content.userInfo["notification_dev"] == nil ? [.banner, .sound, .badge] : [])
-      }
-    }
-  }
-
-  nonisolated func userNotificationCenter(
-    _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
-    withCompletionHandler completionHandler: @escaping () -> Void
-  ) {
-    Task { @MainActor in
-      defer { completionHandler() }
-      do { _ = try await NativeStartup.client().handleResponse(response) }
-      catch { NotificationCenter.default.post(name: bridgeDiagnostic, object: error) }
-    }
-  }
-}
 
 func encode<T: Encodable>(_ value: T) throws -> String {
   String(decoding: try JSONEncoder().encode(value), as: UTF8.self)

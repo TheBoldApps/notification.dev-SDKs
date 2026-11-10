@@ -64,6 +64,8 @@ class NotificationDevModule : Module() {
             "setEmail" -> NotificationDev.setEmail(string("address"), boolean("optedIn"))
             "removeEmail" -> NotificationDev.removeEmail()
             "setEmailOptedIn" -> NotificationDev.setEmailOptedIn(boolean("enabled"))
+            "suppressForegroundNotifications" -> NotificationDev.suppressForegroundNotifications(
+                args["matchingData"]?.takeUnless { it is JsonNull }?.jsonObject)
             "setPushOptedIn" -> NotificationDev.setPushOptedIn(boolean("enabled"))
             "setTags" -> NotificationDev.setTags(args.getValue("values").jsonObject.mapValues { (_, element) ->
                 val value = element.jsonPrimitive

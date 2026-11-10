@@ -63,7 +63,10 @@ internal data class StoredState(
     val pendingDevice: PendingDevice? = PendingDevice(),
     val opens: List<NotificationOpen> = emptyList(),
     val seenDeliveries: Map<String, Long> = emptyMap(),
-    val liveActivities: LiveActivityStorage = LiveActivityStorage()
+    val liveActivities: LiveActivityStorage = LiveActivityStorage(),
+    val registrationBody: String? = null,
+    val credentialRevoked: Boolean = false,
+    val routingMetadataPending: Boolean = true
 )
 
 internal interface StateStore {

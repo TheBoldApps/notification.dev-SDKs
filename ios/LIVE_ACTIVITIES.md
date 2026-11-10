@@ -187,3 +187,28 @@ update-token registration → update → end; process relaunch, rotation, permis
 changes, and login/logout. Test a shared activity on two users' devices and a
 separate private activity for each user. Confirm visible widget content; APNs
 acceptance alone does not establish successful decoding or display.
+
+## Additional remote controls
+
+Server start/update/end requests accept an optional `timestamp` in Unix seconds
+and nonnegative `relevanceScore`. Preserve a selected timestamp when retrying
+the same idempotent request. Start/update alerts also accept `sound` (a sound
+name or null); end events reject a non-null alert sound. These controls are sent
+by the authenticated application backend, not by embedding a project API key in
+an app. ActivityKit token registration APIs are unchanged.
+
+For example, a delivery-status update can include:
+
+```json
+{
+  "event": "update",
+  "eventUpdates": { "status": "Nearby", "minutesRemaining": 3 },
+  "relevanceScore": 80,
+  "alert": { "title": "Delivery nearby", "body": "Arriving soon", "sound": "default" }
+}
+```
+
+Choose a provider matching the installation's reported bundle identifier and
+APNs environment. A routing change invalidates previous grants and update tokens;
+start a new private activity with a fresh ID and grant. See the
+[advanced guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md).
