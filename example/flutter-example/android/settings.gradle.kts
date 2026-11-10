@@ -25,9 +25,3 @@ plugins {
 }
 
 include(":app")
-
-includeBuild("../../..") {
-    dependencySubstitution {
-        substitute(module("dev.notification:android-sdk")).using(project(":android"))
-    }
-}

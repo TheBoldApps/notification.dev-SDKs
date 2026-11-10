@@ -31,7 +31,7 @@ class SwiftPackageIntegrationTest < Minitest::Test
       assert_equal 1, reopened.root_object.package_references.size
       reference = reopened.root_object.package_references.first
       assert_equal NotificationDevExpo::URL, reference.repositoryURL
-      assert_equal({ 'kind' => 'exactVersion', 'version' => '0.2.0' }, reference.requirement)
+      assert_equal({ 'kind' => 'exactVersion', 'version' => '0.3.0' }, reference.requirement)
       target = reopened.targets.first
       assert_equal 0, target.package_product_dependencies.size
       assert_equal 0, target.frameworks_build_phase.files.count { |file| file.product_ref }

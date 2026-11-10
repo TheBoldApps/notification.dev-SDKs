@@ -1,8 +1,8 @@
 # Expo SDK
 
 TypeScript API over the **released** notification.dev native SDKs. Android uses
-`dev.notification:android-sdk:0.2.0` from Maven Central. iOS uses the remote
-`NotificationDev` Swift package at exact version `0.2.0`, including its
+`dev.notification:android-sdk:0.3.0` from Maven Central. iOS uses the remote
+`NotificationDev` Swift package at exact version `0.3.0`, including its
 checksum-verified Kotlin core XCFramework. The npm package contains bridge and
 configuration code only, with no native SDK sources or binaries.
 
@@ -204,8 +204,8 @@ npm pack
 ```
 
 The Ruby check requires the `xcodeproj` gem. `npm pack` runs the TypeScript build
-through `prepack`. For version `0.2.0`, it produces
-`notification.dev-expo-0.2.0.tgz`. Check that the tarball contains the compiled
+through `prepack`. For version `0.3.0`, it produces
+`notification.dev-expo-0.3.0.tgz`. Check that the tarball contains the compiled
 JavaScript/types, bridge sources, config plugin, module configuration, and
 documentation/licenses, without credentials, generated native projects, or
 native SDK binaries.
@@ -221,8 +221,8 @@ Authenticate and publish the same tarball you tested:
 ```sh
 npm login --registry=https://registry.npmjs.org/
 npm whoami --registry=https://registry.npmjs.org/
-npm publish ./notification.dev-expo-0.2.0.tgz --access public --tag latest --registry=https://registry.npmjs.org/
-npm view @notification.dev/expo@0.2.0 version dist.integrity --registry=https://registry.npmjs.org/
+npm publish ./notification.dev-expo-0.3.0.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+npm view @notification.dev/expo@0.3.0 version dist.integrity --registry=https://registry.npmjs.org/
 npm view @notification.dev/expo dist-tags --registry=https://registry.npmjs.org/
 ```
 
@@ -233,7 +233,7 @@ For future releases, update the package version and substitute the new version
 in the tarball name and verification commands. Confirm native dependency pins
 still reference available, compatible releases.
 
-Finally, run `npx expo install @notification.dev/expo@0.2.0` in a clean Expo 58
+Finally, run `npx expo install @notification.dev/expo@0.3.0` in a clean Expo 58
 app and repeat native builds to verify installation from the registry.
 
 Copyright 2026 The Bold Apps, LLC. Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE).
@@ -254,14 +254,12 @@ clear it. iOS background alerts remain controlled by the OS.
 
 Images on iOS require a Notification Service Extension embedded in the host app;
 the bridge does not create that target automatically. See the
-[iOS image setup](../docs/integration/ios.md#ios-image-notifications).
+[iOS image setup](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/ios.md#ios-image-notifications).
 The `liveActivities` facade supports configuration, capabilities, local start/end,
 listing, and replaying activity state. It uses the shared Swift implementation
 and still requires a native SwiftUI widget extension. Swift's `resetLocalState()`
-remains outside the bridge. See the [Live Activity facade guide](../docs/live-activity-facades.md)
+remains outside the bridge. See the [Live Activity facade guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/live-activity-facades.md)
 for usage, server grants/payloads and platform behavior.
 
-This source branch adds native APIs absent from the existing `0.2.0` tag. Before
-publishing, release matching native SDK artifacts under a new version and update
-the bridge's Maven/SPM dependency pins together. Contributor builds can use local
-native sources; their success does not validate the existing published pins.
+These APIs are included in wrapper release `0.3.0`, which uses native SDK
+`0.3.0` from Maven Central and the released Swift package.

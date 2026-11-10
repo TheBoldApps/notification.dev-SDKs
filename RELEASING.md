@@ -141,7 +141,7 @@ checksum, rather than assume a fresh build produces byte-identical ZIP files.
 ## Flutter / pub.dev
 
 The package is `notification_dev` in `flutter/`. Its Android dependency is
-`dev.notification:android-sdk:0.2.0`; its Swift dependency is GitHub tag `0.2.0`.
+`dev.notification:android-sdk:0.3.0`; its Swift dependency is GitHub tag `0.3.0`.
 Publish both native releases first and confirm that all transitive Android core
 artifacts are available from Maven Central. A staged Central deployment or a
 local Maven publication is not sufficient.
@@ -165,8 +165,8 @@ Do not add `mavenLocal()` or a Gradle composite dependency substitution. Enable
 Swift Package Manager and verify that iOS resolves the remote SDK tag and its
 XCFramework. Build Android and iOS, then check initialization, permissions,
 FCM/APNs delivery, restart behavior, and notification opens on configured devices.
-The repository example substitutes local Android source and does not prove
-Maven Central installation works.
+The repository example uses released native dependencies by default; keep local
+overrides out of publication verification.
 
 After the checks pass, run from `flutter/`:
 
@@ -179,7 +179,7 @@ pub.dev publisher is optional and has separate domain verification from Maven
 Central. For a new package, publish using a Google account, then transfer it to
 the organization's publisher on pub.dev if desired.
 
-Finally install `notification_dev: ^0.2.0` from pub.dev in a separate app and build
+Finally install `notification_dev: ^0.3.0` from pub.dev in a separate app and build
 both platforms again. For future releases, update the Flutter package version,
 CHANGELOG, and native dependency versions together as appropriate.
 

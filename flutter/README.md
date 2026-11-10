@@ -19,7 +19,7 @@ server API key.
 
 ```yaml
 dependencies:
-  notification_dev: ^0.2.0
+  notification_dev: ^0.3.0
 ```
 
 Run `flutter pub get`. Android downloads the native SDK from Maven Central; iOS downloads the released Swift package from GitHub. No native SDK checkout or local Gradle composite build is required.
@@ -35,7 +35,7 @@ See the [full example](https://github.com/TheBoldApps/notification.dev-SDKs/blob
 
 ## Initialize and use
 
-See the [minimal Flutter app](example/main.dart) for initialization and a permission button.
+See the [minimal Flutter app](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/flutter/example/main.dart) for initialization and a permission button.
 
 ```dart
 import 'package:notification_dev/notification_dev.dart';
@@ -133,14 +133,12 @@ clear it. iOS background alerts remain controlled by the OS.
 
 Images on iOS require a Notification Service Extension embedded in the host app;
 the bridge does not create that target automatically. See the
-[iOS image setup](../docs/integration/ios.md#ios-image-notifications).
+[iOS image setup](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/ios.md#ios-image-notifications).
 The `liveActivities` facade supports configuration, capabilities, local start/end,
 listing, and replaying activity state. It uses the shared Swift implementation
 and still requires a native SwiftUI widget extension. Swift's `resetLocalState()`
-remains outside the bridge. See the [Live Activity facade guide](../docs/live-activity-facades.md)
+remains outside the bridge. See the [Live Activity facade guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/live-activity-facades.md)
 for usage, server grants/payloads and platform behavior.
 
-This source branch adds native APIs absent from the existing `0.2.0` tag. Before
-publishing, release matching native SDK artifacts under a new version and update
-the bridge's Maven/SPM dependency pins together. Contributor builds can use local
-native sources; their success does not validate the existing published pins.
+These APIs are included in wrapper release `0.3.0`, which uses native SDK
+`0.3.0` from Maven Central and the released Swift package.

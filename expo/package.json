@@ -1,6 +1,6 @@
 {
   "name": "@notification.dev/expo",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Expo bridge for the native notification.dev SDKs",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -17,7 +17,8 @@
     "expo-module.config.json",
     "README.md",
     "LICENSE",
-    "NOTICE"
+    "NOTICE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

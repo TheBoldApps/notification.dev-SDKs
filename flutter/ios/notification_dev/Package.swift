@@ -7,7 +7,7 @@ let sdk: Package.Dependency = {
     if let path = ProcessInfo.processInfo.environment["NOTIFICATION_DEV_SWIFT_PACKAGE_PATH"] {
         return .package(name: "notification.dev-SDKs", path: path)
     }
-    return .package(url: "https://github.com/TheBoldApps/notification.dev-SDKs.git", exact: "0.2.0")
+    return .package(url: "https://github.com/TheBoldApps/notification.dev-SDKs.git", exact: "0.3.0")
 }()
 
 let package = Package(

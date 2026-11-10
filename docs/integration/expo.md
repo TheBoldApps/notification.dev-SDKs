@@ -1,6 +1,6 @@
 # Expo SDK integration
 
-This guide targets SDK release `0.2.0`. Inspect the app's existing notification
+This guide targets SDK release `0.3.0`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard or use the `push-provider-setup` skill with MCP
@@ -11,8 +11,8 @@ Canonical source: [this guide](https://github.com/TheBoldApps/notification.dev-S
 The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/expo/README.md) covers released installation and usage.
 
 TypeScript API over the **released** notification.dev native SDKs. Android uses
-`dev.notification:android-sdk:0.2.0` from Maven Central. iOS uses the remote
-`NotificationDev` Swift package at exact version `0.2.0`, including its
+`dev.notification:android-sdk:0.3.0` from Maven Central. iOS uses the remote
+`NotificationDev` Swift package at exact version `0.3.0`, including its
 checksum-verified Kotlin core XCFramework. The npm package contains bridge and
 configuration code only, with no native SDK sources or binaries.
 
@@ -244,12 +244,10 @@ Use a direct HTTPS JPEG/PNG/GIF URL, no redirects, at most 2 MiB, downloadable
 within five seconds. Rebuild the native app after adding the extension, then
 send a fresh background notification; a hot reload cannot install an extension.
 
-## Live Activities (unreleased)
+## Live Activities
 
-This facade requires matching current native and bridge sources; it is not in
-the existing native `0.2.0` tag. Publish matching versions and update Maven/SPM
-pins before distributing it. Local contributor builds can use native source
-overrides.
+This facade is available in wrapper release `0.3.0` and uses matching native
+SDK `0.3.0` artifacts from Maven Central and the released Swift package.
 
 The client exposes `liveActivities` for capability checks, persisted provider
 configuration, local start/end, listing, and current-association activity snapshots.

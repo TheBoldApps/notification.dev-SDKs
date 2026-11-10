@@ -1,9 +1,7 @@
 # Live Activities in Flutter and Expo
 
-The native facade is available in SDK `0.3.0`; native tag `0.2.0` does not
-contain it. The Flutter and Expo facades remain unreleased until their package
-versions and native dependency pins are updated. Use matching native/Flutter/Expo
-sources for contributor builds.
+The facade is available in native, Flutter and Expo SDK release `0.3.0`.
+Both wrappers depend on the published native SDK `0.3.0` artifacts.
 
 Both bridges expose the same dictionary-based ActivityKit facade. It requires
 an iOS app with a native SwiftUI widget extension. Local activities require iOS

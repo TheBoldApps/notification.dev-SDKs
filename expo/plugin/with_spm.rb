@@ -4,7 +4,7 @@ require 'xcodeproj'
 # package with the app workspace too, without linking the static product twice.
 module NotificationDevExpo
   URL = 'https://github.com/TheBoldApps/notification.dev-SDKs.git'.freeze
-  VERSION = '0.2.0'.freeze
+  VERSION = '0.3.0'.freeze
 
   def self.attach(project, target)
     local_path = ENV['NOTIFICATION_DEV_SWIFT_PACKAGE_PATH']

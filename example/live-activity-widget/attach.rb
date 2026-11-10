@@ -7,12 +7,31 @@ project = Xcodeproj::Project.open(ARGV[0])
 app = project.targets.find { |target| target.product_type == 'com.apple.product-type.application' }
 raise 'No application target found' unless app
 name = 'NotificationDevLiveActivityWidget'
-unless project.targets.any? { |target| target.name == name }
-  sdk = Pathname.new(ARGV[1] || File.expand_path('../../ios', __dir__)).realpath
+# Match the bridges' published dependency unless native development is explicit.
+if ARGV[1]
+  sdk = Pathname.new(ARGV[1]).realpath
   raise 'Native SDK Package.swift is missing' unless sdk.join('Package.swift').file?
-  package = project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
+  package = project.root_object.package_references.find { |reference| reference.isa == 'XCLocalSwiftPackageReference' && reference.relative_path == sdk.relative_path_from(project.project_dir.realpath).to_s }
+  package ||= project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
   package.relative_path = sdk.relative_path_from(project.project_dir.realpath).to_s
-  project.root_object.package_references << package
+else
+  url = 'https://github.com/TheBoldApps/notification.dev-SDKs.git'
+  package = project.root_object.package_references.find { |reference| reference.isa == 'XCRemoteSwiftPackageReference' && reference.repositoryURL == url }
+  package ||= project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
+  package.repositoryURL = url
+  package.requirement = { 'kind' => 'exactVersion', 'version' => '0.3.0' }
+end
+project.root_object.package_references << package unless project.root_object.package_references.include?(package)
+existing = project.targets.find { |target| target.name == name }
+if existing
+  product = existing.package_product_dependencies.find { |dependency| dependency.product_name == 'NotificationDevActivityKit' }
+  previous = product.package
+  product.package = package
+  if previous && previous != package && project.objects.grep(Xcodeproj::Project::Object::XCSwiftPackageProductDependency).none? { |dependency| dependency.package == previous }
+    previous.remove_from_project
+  end
+end
+unless project.targets.any? { |target| target.name == name }
   target = project.new_target(:app_extension, name, :ios, '16.2')
   group = project.main_group.new_group(name, Pathname.new(__dir__).realpath.relative_path_from(project.project_dir.realpath).to_s)
   target.source_build_phase.add_file_reference(group.new_file('DefaultActivityWidget.swift'))

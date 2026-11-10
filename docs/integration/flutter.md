@@ -1,6 +1,6 @@
 # Flutter SDK integration
 
-This guide targets SDK release `0.2.0`. Inspect the app's existing notification
+This guide targets SDK release `0.3.0`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard or use the `push-provider-setup` skill with MCP
@@ -16,7 +16,7 @@ Android/iOS plugin over the native SDKs. Requires Flutter 3.44+, Dart 3.12+, JDK
 
 ```yaml
 dependencies:
-  notification_dev: ^0.2.0
+  notification_dev: ^0.3.0
 ```
 
 Run `flutter pub get`. Android downloads the native SDK from Maven Central; iOS downloads the released Swift package from GitHub. No native SDK checkout or local Gradle composite build is required.
@@ -195,12 +195,10 @@ Use a direct HTTPS JPEG/PNG/GIF URL, no redirects, at most 2 MiB, downloadable
 within five seconds. Rebuild the native app after adding the extension, then
 send a fresh background notification; a hot reload cannot install an extension.
 
-## Live Activities (unreleased)
+## Live Activities
 
-This facade requires matching current native and bridge sources; it is not in
-the existing native `0.2.0` tag. Publish matching versions and update Maven/SPM
-pins before distributing it. Local contributor builds can use native source
-overrides.
+This facade is available in wrapper release `0.3.0` and uses matching native
+SDK `0.3.0` artifacts from Maven Central and the released Swift package.
 
 The client exposes `liveActivities` for capability checks, persisted provider
 configuration, local start/end, listing, and current-association activity snapshots.

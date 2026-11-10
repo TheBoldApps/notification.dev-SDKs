@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
+- Update native Android and Swift dependencies to 0.3.0.
+- Add the Live Activity facade with persisted configuration and replaying activity state.
 - Preserve advanced push options in notification and tap models.
 - Add APNs routing configuration, foreground data filtering, and server-acknowledged push registration state.
 - Forward unrelated iOS notifications to the previous delegate.

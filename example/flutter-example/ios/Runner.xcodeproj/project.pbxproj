@@ -290,7 +290,7 @@
 			mainGroup = 97C146E51CF9000F007C117D;
 			packageReferences = (
 				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */,
-				40B843E2BC0F8B9C8CA78563 /* XCLocalSwiftPackageReference "ios" */,
+				76467F17D9507C2574ACC10B /* XCRemoteSwiftPackageReference "notification.dev-SDKs" */,
 			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
@@ -834,20 +834,27 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		40B843E2BC0F8B9C8CA78563 /* XCLocalSwiftPackageReference "ios" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../../ios;
-		};
 		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage;
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		76467F17D9507C2574ACC10B /* XCRemoteSwiftPackageReference "notification.dev-SDKs" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TheBoldApps/notification.dev-SDKs.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		64440E990233E5CE99F3FB03 /* NotificationDevActivityKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 40B843E2BC0F8B9C8CA78563 /* XCLocalSwiftPackageReference "ios" */;
+			package = 76467F17D9507C2574ACC10B /* XCRemoteSwiftPackageReference "notification.dev-SDKs" */;
 			productName = NotificationDevActivityKit;
 		};
 		78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */ = {

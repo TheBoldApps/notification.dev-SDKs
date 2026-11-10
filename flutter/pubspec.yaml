@@ -1,6 +1,6 @@
 name: notification_dev
 description: Thin Flutter wrapper for the notification.dev Android and iOS SDKs.
-version: 0.2.0
+version: 0.3.0
 homepage: https://notification.dev
 repository: https://github.com/TheBoldApps/notification.dev-SDKs/tree/main/flutter
 issue_tracker: https://github.com/TheBoldApps/notification.dev-SDKs/issues
