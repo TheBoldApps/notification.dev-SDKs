@@ -53,6 +53,13 @@ class NotificationDevModule : Module() {
         }
         check(initialized) { "Initialize the Expo SDK first" }
         NotificationDev.awaitInitialization()
+        if (method.startsWith("liveActivities.")) {
+            return when (method) {
+                "liveActivities.getCapabilities" -> "{\"supported\":false,\"activitiesEnabled\":false,\"pushToStartSupported\":false}"
+                "liveActivities.getActivities" -> "[]"
+                else -> throw SdkException(SdkError("UNSUPPORTED_PLATFORM", "Live Activities require iOS 16.1 or later"))
+            }
+        }
         fun string(key: String) = args.getValue(key).jsonPrimitive.also { require(it.isString) }.content
         fun boolean(key: String) = args.getValue(key).jsonPrimitive.boolean
         when (method) {
@@ -131,6 +138,7 @@ class NotificationDevModule : Module() {
             launch { NotificationDev.pendingOpens.collect { emit("pendingOpens", json.encodeToString(it)) } }
             launch { NotificationDev.notifications.collect { emit("notifications", json.encodeToString(it)) } }
             launch { NotificationDev.diagnostics.collect { emit("diagnostics", json.encodeToString(it)) } }
+            emit("liveActivities", "[]")
         }
     }
 

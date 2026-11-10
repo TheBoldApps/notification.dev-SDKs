@@ -21,6 +21,35 @@ public final class LiveActivities {
     private var observations: [String: Observation] = [:]
     private var selectedActivities: [String: String] = [:]
     private var identityTask: Task<Void, Never>?
+    private var changeSubscribers: [UUID: AsyncStream<Void>.Continuation] = [:]
+
+    var activityChanges: AsyncStream<Void> {
+        AsyncStream { continuation in
+            let id = UUID()
+            changeSubscribers[id] = continuation
+            continuation.yield(())
+            continuation.onTermination = { [weak self] _ in
+                Task { @MainActor in self?.changeSubscribers.removeValue(forKey: id) }
+            }
+        }
+    }
+
+    private func changed() {
+        for continuation in changeSubscribers.values { continuation.yield(()) }
+    }
+
+    func ownsActivity(_ nativeId: String, activityId: String) -> Bool {
+        ready && selectedActivities[activityId] == nativeId
+    }
+
+    func validateOwnedActivity(_ activityId: String) async throws {
+        guard ready, selectedActivities[activityId] != nil else { throw failure("LIVE_ACTIVITY_NOT_FOUND") }
+        try await bind(activityId)
+    }
+
+    private var associationId: String?
+    func isCurrentAssociation(_ id: String) -> Bool { ready && associationId == id }
+
     private var ready = false
 
     init(
@@ -99,6 +128,7 @@ public final class LiveActivities {
             for task in observations[nativeId]?.tasks ?? [] { task.cancel() }
             observations.removeValue(forKey: nativeId)
         }
+        changed()
     }
 
     public func setPushToStartToken(
@@ -195,10 +225,12 @@ public final class LiveActivities {
                     guard !Task.isCancelled, let self else { break }
                     let isReady = state.associationId != nil && !state.identityChangePending
                     self.ready = isReady
+                    self.associationId = state.associationId
                     if !isReady || state.associationId != previousAssociation {
                         for observation in self.observations.values { for task in observation.tasks { task.cancel() } }
                         self.observations.removeAll()
                         self.selectedActivities.removeAll()
+                        self.changed()
                     }
                     if isReady && (!wasReady || state.associationId != previousAssociation) {
                         for config in self.configurations.values { await self.reconcile(config) }
@@ -236,6 +268,7 @@ public final class LiveActivities {
                 for task in observations.removeValue(forKey: oldId)?.tasks ?? [] { task.cancel() }
             }
             selectedActivities[metadata.activityId] = activity.id
+            changed()
             if activity.ended() {
                 try await exit(metadata.activityId)
                 return

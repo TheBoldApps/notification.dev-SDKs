@@ -1,4 +1,4 @@
-import type { EmailSubscription, EventMap, JsonObject, PushPermissionResult, PushPermissionStatus, SdkState, Subscription, TagValue } from './types';
+import type { LiveActivityCapabilities, LiveActivityConfiguration, LiveActivityStart, LiveActivityState, EmailSubscription, EventMap, JsonObject, PushPermissionResult, PushPermissionStatus, SdkState, Subscription, TagValue } from './types';
 
 export interface NativeBridge {
   invoke(method: string, argumentsJson: string): Promise<string | null>;
@@ -42,6 +42,11 @@ export class NotificationDevClient {
   private nativeSubscription?: Subscription;
   private listeners = new Map<keyof EventMap, Set<(value: never) => void>>();
   private latest = new Map<keyof EventMap, unknown>();
+
+  readonly liveActivities = new LiveActivitiesClient(
+    (method, args) => this.call(method, args),
+    listener => this.addListener('liveActivities', listener),
+  );
 
   constructor(private readonly native: NativeBridge) {}
 
@@ -88,7 +93,7 @@ export class NotificationDevClient {
     if (!this.nativeSubscription) {
       this.nativeSubscription = this.native.addListener('onEvent', event => {
         const value = frozen(JSON.parse(event.json));
-        if (event.name === 'states' || event.name === 'pendingOpens') this.latest.set(event.name, value);
+        if (event.name === 'states' || event.name === 'pendingOpens' || event.name === 'liveActivities') this.latest.set(event.name, value);
         for (const handler of [...(this.listeners.get(event.name) ?? [])]) handler(value as never);
       });
     }
@@ -104,7 +109,14 @@ export class NotificationDevClient {
     } };
   }
 
-  suppressForegroundNotifications = (matchingData: JsonObject | null) => this.call<void>('suppressForegroundNotifications', { matchingData });
+  /** Hides matching foreground alerts; null clears the filter. Receipts remain enabled.
+   * Login, logout, and process restart clear it. iOS background alerts are unaffected. */
+  suppressForegroundNotifications = async (matchingData: JsonObject | null): Promise<void> => {
+    if (matchingData !== null && (typeof matchingData !== 'object' || Array.isArray(matchingData) || Object.keys(matchingData).length === 0)) {
+      throw new SdkException('INVALID_ARGUMENT', 'Provide a nonempty data filter or null');
+    }
+    return this.call<void>('suppressForegroundNotifications', { matchingData });
+  };
   getState = () => this.call<SdkState>('getState');
   getTags = () => this.call<Record<string, TagValue>>('getTags');
   getEmail = () => this.call<EmailSubscription | null>('getEmail');
@@ -129,4 +141,39 @@ export class NotificationDevClient {
   requestPushPermission = (settingsFallback = false) => this.call<PushPermissionResult>('requestPushPermission', { settingsFallback });
   /** Resolves to whether settings opened, not whether permission was granted. */
   openPushSettings = () => this.call<boolean>('openPushSettings');
+}
+
+/** iOS-only ActivityKit facade. The host app must embed a SwiftUI widget extension. */
+export class LiveActivitiesClient {
+  constructor(
+    private readonly invoke: <T>(method: string, args?: JsonObject) => Promise<T>,
+    private readonly subscribe: (listener: (activities: LiveActivityState[]) => void) => Subscription,
+  ) {}
+
+  getCapabilities = () => this.invoke<LiveActivityCapabilities>('liveActivities.getCapabilities');
+
+  /** Persist public configuration for native background startup.
+   * Valid changes are staged for the next native launch and report LIVE_ACTIVITY_RESTART_REQUIRED. */
+  configure = (configuration: LiveActivityConfiguration) => this.invoke<void>('liveActivities.configure', {
+    providerConfigurationId: configuration.providerConfigurationId,
+    enablePushToStart: configuration.enablePushToStart ?? true,
+    enablePushToUpdate: configuration.enablePushToUpdate ?? true,
+  });
+
+  /** Requires a fresh backend-issued registration grant for this installation/association. */
+  start = (request: LiveActivityStart) => this.invoke<LiveActivityState>('liveActivities.start', {
+    activityId: request.activityId, attributes: request.attributes, content: request.content,
+    registrationToken: request.registrationToken,
+  });
+
+  getActivities = () => this.invoke<LiveActivityState[]>('liveActivities.getActivities');
+
+  /** End locally and queue unregistration. Omitted dismissalDate means immediate removal.
+   * dismissalDate is milliseconds since Unix epoch. Remote updates/end remain backend operations. */
+  end = (activityId: string, content: JsonObject = {}, dismissalDate?: number) => this.invoke<void>('liveActivities.end', {
+    activityId, content, ...(dismissalDate === undefined ? {} : { dismissalDate }),
+  });
+
+  /** Replays the current list, excluding other accounts' activities and all credentials. */
+  addListener = (listener: (activities: LiveActivityState[]) => void) => this.subscribe(listener);
 }

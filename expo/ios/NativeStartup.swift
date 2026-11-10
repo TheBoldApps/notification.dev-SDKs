@@ -41,10 +41,12 @@ enum NativeStartup {
         let displayInForeground = values["displayInForeground"] as? Bool
       else { throw BridgeFailure.invalidArgument }
       task = Task {
-        try await NotificationDev.initialize(SdkConfig(
+        let sdk = try await NotificationDev.initialize(SdkConfig(
           projectId: projectId, baseURL: url, allowHTTP: allowHttp,
           loggingEnabled: loggingEnabled, displayInForeground: displayInForeground,
           apnsEnvironment: (values["iosApnsEnvironment"] as? String).flatMap(ApnsEnvironment.init(rawValue:))))
+        sdk.liveActivityBridge.restoreConfiguration()
+        return sdk
       }
     }
     do { return try await task!.value }

@@ -5,10 +5,10 @@
 1. Open this directory in Android Studio. Use JDK 17 and Android SDK 36.
 2. Register Firebase Android package `dev.notification.example`; save its client configuration as `app/google-services.json` (ignored by Git).
 3. Configure an FCM provider in your notification.dev project using the same Firebase project. Keep service-account credentials on the server.
-4. Replace `YOUR_PUBLIC_PROJECT_UUID` in `ExampleApplication.kt` with your notification.dev project UUID.
+4. Set `notificationProjectId=<your project UUID>` in the ignored `local.properties`. Set `notificationBaseUrl` there when using a local backend.
 5. Run the **app** configuration on an API 23+ device or emulator with Google Play services.
 
-The composite build uses the local SDK; Maven publication is unnecessary. For local development, override `SdkConfig.baseUrl` (for example, `http://10.0.2.2:3000/` on an emulator). Cleartext is debug-only; release requires HTTPS. Clear app data when switching projects or hosts.
+The composite build uses the local SDK; Maven publication is unnecessary. For local development, set `notificationBaseUrl` in `local.properties` (for example, `http://10.0.2.2:3000/` on an emulator). Cleartext is debug-only; release requires HTTPS. Clear app data when switching projects or hosts.
 
 ## Build
 

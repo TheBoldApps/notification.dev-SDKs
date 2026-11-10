@@ -95,7 +95,9 @@ private enum NativeStartup {
         task = Task {
             do {
                 _ = try await previous?.value
-                return try await NativeSdk.initialize(nativeConfig)
+                let sdk = try await NativeSdk.initialize(nativeConfig)
+                sdk.liveActivityBridge.restoreConfiguration()
+                return sdk
             } catch {
                 configuration = nil
                 task = nil
@@ -136,7 +138,7 @@ public final class NotificationDevPlugin: NSObject, @preconcurrency FlutterPlugi
         registrar.addMethodCallDelegate(instance, channel: channel)
         registrar.addApplicationDelegate(instance)
         instance.appDelegate = UIApplication.shared.delegate as? (NSObjectProtocol & UNUserNotificationCenterDelegate)
-        for name in ["states", "pendingOpens", "notifications", "diagnostics"] {
+        for name in ["states", "pendingOpens", "notifications", "diagnostics", "liveActivities"] {
             let stream = NativeStream(name: name)
             instance.streams[name] = stream
             let events = FlutterEventChannel(
@@ -202,6 +204,11 @@ public final class NotificationDevPlugin: NSObject, @preconcurrency FlutterPlugi
                 }
                 guard initialized else { throw BridgeFailure.notInitialized }
                 let sdk = try await NativeStartup.client()
+                if call.method.hasPrefix("liveActivities.") {
+                    let args = try decode([String: JSONValue].self, string(arguments, "argumentsJson"))
+                    result(try encode(await sdk.liveActivityBridge.invoke(call.method, arguments: args)))
+                    return
+                }
                 switch call.method {
                 case "getState": result(try encode(sdk.state))
                 case "getTags": result(try encode(sdk.getTags()))
@@ -344,6 +351,7 @@ private final class NativeStream: NSObject, @preconcurrency FlutterStreamHandler
                 case "pendingOpens": await collect(sdk.pendingOpens, events)
                 case "notifications": await collect(sdk.notifications, events)
                 case "diagnostics": await collect(sdk.diagnostics, events)
+                case "liveActivities": await collect(sdk.liveActivityBridge.states, events)
                 default: break
                 }
             } catch { events(flutterError(error)) }

@@ -1,6 +1,6 @@
 # Android SDK integration
 
-This guide targets SDK release `0.2.0`. Inspect the app's existing notification
+This guide targets SDK release `0.3.0`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard or use the `push-provider-setup` skill with MCP
@@ -19,7 +19,7 @@ then add to the app module:
 
 ```kotlin
 dependencies {
-    implementation("dev.notification:android-sdk:0.2.0")
+    implementation("dev.notification:android-sdk:0.3.0")
 }
 ```
 

@@ -22,7 +22,7 @@ then add to the app module:
 
 ```kotlin
 dependencies {
-    implementation("dev.notification:android-sdk:0.2.0")
+    implementation("dev.notification:android-sdk:0.3.0")
 }
 ```
 

@@ -53,6 +53,9 @@ public final class NotificationDevModule: Module, @unchecked Sendable {
     guard initialized else { throw BridgeFailure.notInitialized }
     let sdk = try await NativeStartup.client()
     let args = try JSONDecoder().decode([String: JSONValue].self, from: Data(argumentsJson.utf8))
+    if method.hasPrefix("liveActivities.") {
+      return try encode(await sdk.liveActivityBridge.invoke(method, arguments: args))
+    }
     func string(_ key: String) throws -> String {
       guard case .string(let value) = args[key] else { throw BridgeFailure.invalidArgument }
       return value
@@ -144,6 +147,7 @@ public final class NotificationDevModule: Module, @unchecked Sendable {
           group.addTask { await self.collect("pendingOpens", sdk.pendingOpens) }
           group.addTask { await self.collect("notifications", sdk.notifications) }
           group.addTask { await self.collect("diagnostics", sdk.diagnostics) }
+          group.addTask { await self.collect("liveActivities", sdk.liveActivityBridge.states) }
         }
       } catch { report(error) }
     })

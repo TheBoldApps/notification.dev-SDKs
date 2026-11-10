@@ -14,6 +14,9 @@ class NotificationDev {
   static const _methods = MethodChannel('dev.notification/sdk');
   static final _instance = NotificationDev._();
 
+  /// The iOS Live Activity facade for dictionary-based SwiftUI widgets.
+  final liveActivities = LiveActivities._();
+
   /// Completes after local initialization, without waiting for server registration.
   static Future<NotificationDev> initialize(SdkConfig config) async {
     await _invoke<void>('initialize', config.toJson());
@@ -55,10 +58,32 @@ class NotificationDev {
   Future<void> login(String externalId) =>
       _invoke('login', {'externalId': externalId});
 
-  Future<void> suppressForegroundNotifications({JsonMap? matchingData}) =>
-      _invoke('suppressForegroundNotifications', {
-        'matchingData': matchingData == null ? null : jsonEncode(matchingData),
-      });
+  /// Hides foreground alerts whose custom data matches every supplied field.
+  ///
+  /// Pass `null` to clear the filter. Login, logout, and process restart also
+  /// clear it. Receipts remain enabled; iOS background alerts are unaffected.
+  /// Throws [SdkException] for empty filters or non-finite JSON values.
+  Future<void> suppressForegroundNotifications({JsonMap? matchingData}) async {
+    if (matchingData != null && matchingData.isEmpty) {
+      throw const SdkException(
+        'INVALID_ARGUMENT',
+        'Provide a nonempty data filter or null',
+      );
+    }
+    String? encoded;
+    try {
+      if (matchingData != null) encoded = jsonEncode(matchingData);
+    } on JsonUnsupportedObjectError {
+      throw const SdkException(
+        'INVALID_ARGUMENT',
+        'Matching data must contain finite JSON values without cycles',
+      );
+    }
+
+    await _invoke<void>('suppressForegroundNotifications', {
+      'matchingData': encoded,
+    });
+  }
 
   Future<void> logout() => _invoke('logout');
 
@@ -197,4 +222,99 @@ Stream<T> _replay<T>(Stream<T> source) {
       await subscription.cancel();
     };
   }, isBroadcast: true);
+}
+
+/// Manages dictionary-based iOS Live Activities through the native SDK.
+///
+/// The host must embed a SwiftUI widget extension. Android supports capability
+/// detection and empty activity lists; mutations throw `UNSUPPORTED_PLATFORM`.
+class LiveActivities {
+  LiveActivities._();
+
+  /// The activity type used when requesting grants or sending from the backend.
+  static const activityType = 'DefaultLiveActivityAttributes';
+
+  /// Replays current-association activities and emits content or lifecycle changes.
+  late final Stream<List<LiveActivityState>> states = _replay(
+    NotificationDev._events('liveActivities').map(
+      (value) => List<LiveActivityState>.unmodifiable(
+        (value as List).map(
+          (item) => LiveActivityState.fromJson(item as JsonMap),
+        ),
+      ),
+    ),
+  );
+
+  /// Reports OS support and the user's Live Activity permission independently.
+  Future<LiveActivityCapabilities> getCapabilities() async =>
+      LiveActivityCapabilities.fromJson(
+        await _call('getCapabilities') as JsonMap,
+      );
+
+  /// Persists public configuration so observers resume on native background launch.
+  ///
+  /// Valid changes to an existing configuration are saved for the next native
+  /// launch and report `LIVE_ACTIVITY_RESTART_REQUIRED` until the app restarts.
+  Future<void> configure(LiveActivityConfiguration configuration) async {
+    await _call('configure', configuration.toJson());
+  }
+
+  /// Starts locally using a fresh grant from the app's authenticated backend.
+  ///
+  /// The grant must match [activityId], this installation, its current association,
+  /// the configured provider, and [activityType]. Never pass a server API key.
+  Future<LiveActivityState> start({
+    required String activityId,
+    required JsonMap attributes,
+    required JsonMap content,
+    required String registrationToken,
+  }) async => LiveActivityState.fromJson(
+    await _call('start', {
+          'activityId': activityId,
+          'attributes': attributes,
+          'content': content,
+          'registrationToken': registrationToken,
+        })
+        as JsonMap,
+  );
+
+  /// Lists active or stale activities belonging to the current association.
+  Future<List<LiveActivityState>> getActivities() async =>
+      List<LiveActivityState>.unmodifiable(
+        (await _call('getActivities') as List).map(
+          (item) => LiveActivityState.fromJson(item as JsonMap),
+        ),
+      );
+
+  /// Ends the local activity and queues unregistration from backend updates.
+  ///
+  /// Omitting [dismissalDate] removes the UI immediately. Remote updates and end
+  /// events remain server operations. Success does not confirm backend upload.
+  Future<void> end(
+    String activityId, {
+    JsonMap content = const {},
+    DateTime? dismissalDate,
+  }) async {
+    await _call('end', {
+      'activityId': activityId,
+      'content': content,
+      if (dismissalDate != null)
+        'dismissalDate': dismissalDate.millisecondsSinceEpoch,
+    });
+  }
+
+  Future<Object?> _call(String method, [JsonMap arguments = const {}]) async {
+    final String encoded;
+    try {
+      encoded = jsonEncode(arguments);
+    } on JsonUnsupportedObjectError {
+      throw const SdkException(
+        'INVALID_ARGUMENT',
+        'Live Activity arguments must contain finite JSON values without cycles',
+      );
+    }
+    return NotificationDev._json('liveActivities.$method', {
+      'argumentsJson': encoded,
+    });
+  }
 }

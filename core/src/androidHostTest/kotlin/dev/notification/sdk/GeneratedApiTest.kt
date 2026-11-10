@@ -47,7 +47,7 @@ class GeneratedApiTest {
             assertEquals(registration, transport.register("installation", "secret"))
             val body = server.next("POST", "/v1/sdk/installations", "installation", null).bodyJson()
             assertEquals(
-                wireJson.parseToJsonElement("""{"projectId":"project","installationId":"installation","registrationSecret":"secret","platform":"android","sdkVersion":"0.2.0","metadata":{"appVersion":"1.2","locale":"en"}}"""),
+                wireJson.parseToJsonElement("""{"projectId":"project","installationId":"installation","registrationSecret":"secret","platform":"android","sdkVersion":"0.3.0","metadata":{"appVersion":"1.2","locale":"en"}}"""),
                 body
             )
 

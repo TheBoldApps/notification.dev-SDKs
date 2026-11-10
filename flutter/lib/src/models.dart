@@ -276,3 +276,50 @@ class AndroidNotificationOptions {
   final String? groupKey;
   final String? groupSummary;
 }
+
+/// Public startup configuration for the default iOS activity type.
+class LiveActivityConfiguration {
+  const LiveActivityConfiguration({
+    required this.providerConfigurationId,
+    this.enablePushToStart = true,
+    this.enablePushToUpdate = true,
+  });
+
+  final String providerConfigurationId;
+  final bool enablePushToStart;
+  final bool enablePushToUpdate;
+
+  JsonMap toJson() => {
+    'providerConfigurationId': providerConfigurationId,
+    'enablePushToStart': enablePushToStart,
+    'enablePushToUpdate': enablePushToUpdate,
+  };
+}
+
+/// OS support and permission for ActivityKit, independent of ordinary push opt-in.
+class LiveActivityCapabilities {
+  LiveActivityCapabilities.fromJson(JsonMap json)
+    : supported = json['supported'] as bool,
+      activitiesEnabled = json['activitiesEnabled'] as bool,
+      pushToStartSupported = json['pushToStartSupported'] as bool;
+
+  final bool supported;
+  final bool activitiesEnabled;
+  final bool pushToStartSupported;
+}
+
+/// A credential-free snapshot of an activity belonging to the current association.
+class LiveActivityState {
+  LiveActivityState.fromJson(JsonMap json)
+    : activityId = json['activityId'] as String,
+      nativeActivityId = json['nativeActivityId'] as String,
+      state = json['state'] as String,
+      attributes = immutableJson(json['attributes'] as JsonMap),
+      content = immutableJson(json['content'] as JsonMap);
+
+  final String activityId;
+  final String nativeActivityId;
+  final String state;
+  final JsonMap attributes;
+  final JsonMap content;
+}

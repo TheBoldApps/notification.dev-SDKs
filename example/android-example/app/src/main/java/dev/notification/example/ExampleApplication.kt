@@ -8,9 +8,10 @@ class ExampleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Replace this placeholder with your notification.dev project UUID.
+        // Configure this example through local.properties.
         NotificationDev.initialize(this, SdkConfig(
-            projectId = "YOUR_PUBLIC_PROJECT_UUID",
+            projectId = BuildConfig.NOTIFICATION_PROJECT_ID,
+            baseUrl = BuildConfig.NOTIFICATION_BASE_URL,
             smallIcon = R.drawable.ic_notification,
             allowHttp = BuildConfig.DEBUG,
             loggingEnabled = BuildConfig.DEBUG,

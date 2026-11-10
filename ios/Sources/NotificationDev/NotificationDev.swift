@@ -7,6 +7,9 @@ import UserNotifications
 @MainActor
 public final class NotificationDev {
     public private(set) static var shared: NotificationDev?
+    public lazy var liveActivityBridge = DefaultLiveActivityBridge(
+        manager: liveActivities, scope: "\(config.projectId)|\(config.baseURL.absoluteString)",
+        currentState: { [weak self] in self?.state }, report: { [weak self] in self?.report($0) })
     public lazy var liveActivities: LiveActivities = LiveActivities(
         perform: { [weak self] method, args in
             guard let self else { throw CancellationError() }

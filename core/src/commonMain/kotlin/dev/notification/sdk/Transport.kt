@@ -40,7 +40,7 @@ internal class HttpTransport(
     fun close() = http.close()
 
     private fun registrationInput(id: String, secret: String) = RegistrationInput(
-        projectId, id, secret, SubscribersPlatform.valueOf(platform.name), "0.2.0", metadata.toWire()
+        projectId, id, secret, SubscribersPlatform.valueOf(platform.name), "0.3.0", metadata.toWire()
     )
 
     override fun registrationBody(id: String, secret: String): String =

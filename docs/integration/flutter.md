@@ -194,3 +194,61 @@ shown in the [iOS image setup](https://github.com/TheBoldApps/notification.dev-S
 Use a direct HTTPS JPEG/PNG/GIF URL, no redirects, at most 2 MiB, downloadable
 within five seconds. Rebuild the native app after adding the extension, then
 send a fresh background notification; a hot reload cannot install an extension.
+
+## Live Activities (unreleased)
+
+This facade requires matching current native and bridge sources; it is not in
+the existing native `0.2.0` tag. Publish matching versions and update Maven/SPM
+pins before distributing it. Local contributor builds can use native source
+overrides.
+
+The client exposes `liveActivities` for capability checks, persisted provider
+configuration, local start/end, listing, and current-association activity snapshots.
+Use the default `DefaultLiveActivityAttributes` type and embed a native SwiftUI
+widget extension linked to `NotificationDevActivityKit`. Remote start/update/end
+and grant creation stay on your authenticated backend; never ship a project API
+key in the app. Local start requires a fresh grant for the activity ID, current
+installation/association, type and provider. Android reports unsupported and does
+not attempt ActivityKit operations.
+
+See the [complete facade guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/live-activity-facades.md)
+for API examples, startup restoration, the shared widget example, JSON wrapping,
+state/diagnostic streams, dismissal dates and device checks. Configure once after
+initialization; the native bridge persists public options and restores observers
+on background/restart launches before Dart/JavaScript runs. Lists and streams do
+not include registration grants or APNs tokens, and exclude other accounts' activities.
+
+```dart
+final capabilities = await sdk.liveActivities.getCapabilities();
+if (capabilities.supported) {
+  await sdk.liveActivities.configure(const LiveActivityConfiguration(
+    providerConfigurationId: 'YOUR_APNS_PROVIDER_UUID',
+  ));
+  final subscription = sdk.liveActivities.states.listen(handleActivities);
+  final current = await sdk.liveActivities.getActivities();
+  final started = await sdk.liveActivities.start(
+    activityId: 'order-123', attributes: {'name': 'Delivery'},
+    content: {'status': 'Preparing'}, registrationToken: grantFromYourBackend,
+  );
+  await sdk.liveActivities.end('order-123', content: {'status': 'Delivered'});
+  await subscription.cancel();
+}
+```
+
+The app needs `NSSupportsLiveActivities = true` and an embedded SwiftUI widget
+using `ActivityConfiguration(for: DefaultLiveActivityAttributes.self)`. Link only
+`NotificationDevActivityKit` into that widget. To obtain the local-start grant,
+your backend calls `POST /v1/projects/{projectId}/live-activities/{activityId}/registration-grants`
+with `activityType`, `providerConfigurationId`, `installationId`, and current
+`associationId`. Wait for identity synchronization and authorize the installation
+against the signed-in user before issuing the grant. Never log grants or put
+project API keys in the app. Remote sends use `eventAttributes: {"data":{...}}`
+and `eventUpdates: {"data":{...}}`; the facade takes unwrapped dictionaries.
+Omitting the local end's dismissal date requests immediate dismissal. On Android,
+capabilities are false, activity lists/streams are empty, and mutations throw
+`UNSUPPORTED_PLATFORM`. Token registration errors use `sdk.diagnostics`.
+
+Identical Live Activity configuration is idempotent. A valid provider/options
+change is saved for the next native launch and reports
+`LIVE_ACTIVITY_RESTART_REQUIRED`; restart the app to activate it. Invalid
+configuration leaves working startup settings intact.

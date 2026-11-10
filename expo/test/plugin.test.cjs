@@ -6,7 +6,7 @@ const projectId = '8d022e2f-41c6-4853-b578-3b56d4e099ab';
 test('config validates public configuration and explicit HTTP opt-in', () => {
   assert.equal(nativeConfiguration({ projectId }).baseUrl, 'https://app.notification.dev/');
   assert.equal(nativeConfiguration({ projectId, allowHttp: true, baseUrl: 'http://192.168.1.2:3000' }).allowHttp, true);
-  for (const options of [{}, { projectId: 'bad' }, { projectId, baseUrl: 'http://localhost' }, { projectId, baseUrl: 'https://secret@example.com' }, { projectId, loggingEnabled: 'true' }, { projectId, androidChannelId: '' }]) {
+  for (const options of [{}, { projectId: 'bad' }, { projectId, baseUrl: 'http://localhost' }, { projectId, baseUrl: 'https://secret@example.com' }, { projectId, loggingEnabled: 'true' }, { projectId, androidChannelId: '' }, { projectId, iosLiveActivities: 'true' }]) {
     assert.throws(() => nativeConfiguration(options));
   }
 });

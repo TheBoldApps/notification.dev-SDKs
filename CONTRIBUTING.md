@@ -60,7 +60,7 @@ includeBuild("/path/to/notification.dev-SDKs") {
 }
 ```
 
-Add `implementation("dev.notification:android-sdk:0.2.0")` to your app dependencies. Configure Firebase with the Google Services plugin and your `google-services.json`. Firebase Messaging is included by the SDK.
+Add `implementation("dev.notification:android-sdk:0.3.0")` to your app dependencies. Configure Firebase with the Google Services plugin and your `google-services.json`. Firebase Messaging is included by the SDK.
 
 ### iOS — Local installation
 

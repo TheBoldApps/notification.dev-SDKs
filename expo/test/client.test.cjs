@@ -52,10 +52,10 @@ test('bridge preserves tag/event values and native results', async () => {
 test('foreground suppression stays in native code and advanced tap data survives', async () => {
   const f = fixture();
   await f.client.initialize();
-  await f.client.suppressForegroundNotifications({ conversationId: 'chat:1' });
+  await f.client.suppressForegroundNotifications({ conversationId: 'chat:1', nested: { values: [null, false, 0] } });
   await f.client.suppressForegroundNotifications(null);
   assert.deepEqual(f.calls.slice(1), [
-    ['suppressForegroundNotifications', { matchingData: { conversationId: 'chat:1' } }],
+    ['suppressForegroundNotifications', { matchingData: { conversationId: 'chat:1', nested: { values: [null, false, 0] } } }],
     ['suppressForegroundNotifications', { matchingData: null }],
   ]);
   let result;
@@ -63,7 +63,10 @@ test('foreground suppression stays in native code and advanced tap data survives
   const opens = [{ interactionId: 'opened', openedAt: 1, notification: {
     version: 1, deliveryId: 'delivery', associationId: 'association', expiresAt: 1900000000000,
     title: 'Title', body: 'Body', data: { nested: [1, true, null] },
-    collapseId: 'chat:1', ios: { sound: null, badge: 0 }, android: { channelId: 'chat' },
+    collapseId: 'chat:1', threadId: 'chat:1', ttlSeconds: 60, priority: 'normal',
+    ios: { sound: null, badge: 0, subtitle: 'Chat', mutableContent: true, interruptionLevel: 'passive' },
+    android: { channelId: 'chat', groupKey: 'chat:1', groupSummary: 'Two messages' },
+    imageUrl: 'https://example.com/image.jpg', contentAvailable: true,
   } }];
   f.emit('pendingOpens', opens);
   assert.deepEqual(result, opens);
@@ -131,4 +134,62 @@ test('registrations using the same callback are independently removable', async 
   assert.equal(seen.length, 1);
   second.remove();
   assert.equal(f.attached(), 0);
+});
+
+test('invalid foreground filters cannot clear or change the native filter', async () => {
+  const f = fixture();
+  await f.client.initialize();
+  const cycle = {}; cycle.self = cycle;
+  for (const filter of [{}, [], true, '42', undefined, new Date(), {x:NaN}, {x:Infinity}, {x:undefined}, {x:cycle}]) {
+    await assert.rejects(f.client.suppressForegroundNotifications(filter), {code:'INVALID_ARGUMENT'});
+  }
+  assert.equal(f.calls.length, 1);
+});
+
+test('Live Activity facade preserves configuration, grants, JSON content and dismissal timestamps', async () => {
+  const f = fixture();
+  await assert.rejects(f.client.liveActivities.getCapabilities(), {code:'NOT_INITIALIZED'});
+  await f.client.initialize();
+  await f.client.liveActivities.configure({providerConfigurationId:'provider'});
+  await f.client.liveActivities.start({activityId:'order-1',attributes:{name:'Delivery'},content:{items:[0,false,null]},registrationToken:'g'.repeat(43)});
+  await f.client.liveActivities.getActivities();
+  await f.client.liveActivities.end('order-1', {status:'Delivered'}, 1900000000000);
+  assert.deepEqual(f.calls.slice(1), [
+    ['liveActivities.configure', {providerConfigurationId:'provider',enablePushToStart:true,enablePushToUpdate:true}],
+    ['liveActivities.start', {activityId:'order-1',attributes:{name:'Delivery'},content:{items:[0,false,null]},registrationToken:'g'.repeat(43)}],
+    ['liveActivities.getActivities', {}],
+    ['liveActivities.end', {activityId:'order-1',content:{status:'Delivered'},dismissalDate:1900000000000}],
+  ]);
+  await f.client.liveActivities.end('order-1');
+  assert.deepEqual(f.calls.at(-1), ['liveActivities.end', {activityId:'order-1',content:{}}]);
+});
+
+test('Live Activity state replays, remains immutable and clears after account changes', async () => {
+  const f = fixture();
+  await f.client.initialize();
+  const first = [], second = [];
+  const a = f.client.liveActivities.addListener(value => first.push(value));
+  const snapshot = [{activityId:'order-1',nativeActivityId:'native-1',state:'active',attributes:{name:'Delivery'},content:{items:[null,false,0]}}];
+  f.emit('liveActivities', snapshot);
+  const b = f.client.liveActivities.addListener(value => second.push(value));
+  await Promise.resolve();
+  assert.deepEqual(second, [snapshot]);
+  assert.ok(Object.isFrozen(second[0][0].content.items));
+  f.emit('liveActivities', []);
+  assert.deepEqual(first.at(-1), []);
+  assert.deepEqual(second.at(-1), []);
+  a.remove(); b.remove();
+  assert.equal(f.attached(), 0);
+});
+
+test('Live Activity calls reject lossy JSON and retain native unsupported and grant errors', async () => {
+  const f = fixture();
+  await f.client.initialize();
+  await assert.rejects(f.client.liveActivities.start({activityId:'id',attributes:{},content:{value:NaN},registrationToken:'g'.repeat(43)}),{code:'INVALID_ARGUMENT'});
+  await assert.rejects(f.client.liveActivities.end('id', {}, Infinity),{code:'INVALID_ARGUMENT'});
+  assert.equal(f.calls.length, 1);
+  f.native.invoke = async () => { throw {code:'UNSUPPORTED_PLATFORM',message:'iOS required'}; };
+  await assert.rejects(f.client.liveActivities.configure({providerConfigurationId:'provider'}),{code:'UNSUPPORTED_PLATFORM'});
+  f.native.invoke = async () => { throw {code:'INVALID_LIVE_ACTIVITY_GRANT',message:'Grant expired'}; };
+  await assert.rejects(f.client.liveActivities.start({activityId:'id',attributes:{},content:{},registrationToken:'g'.repeat(43)}),{code:'INVALID_LIVE_ACTIVITY_GRANT'});
 });

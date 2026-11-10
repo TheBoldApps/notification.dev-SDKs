@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'live_activity_panel.dart';
 
 import 'package:flutter/material.dart';
 import 'package:notification_dev/notification_dev.dart';
@@ -303,6 +304,7 @@ class _ExampleAppState extends State<ExampleApp> {
             ],
           ),
         ],
+        if (_sdk != null) LiveActivityPanel(sdk: _sdk!),
         const Text('Pending opens'),
         for (final open in _opens)
           ListTile(

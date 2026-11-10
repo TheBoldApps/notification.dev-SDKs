@@ -11,7 +11,7 @@ function nativeConfiguration(options = {}) {
   if (url.username || url.password || url.search || url.hash || !['https:', 'http:'].includes(url.protocol) || (url.protocol === 'http:' && options.allowHttp !== true)) {
     throw new Error('notification.dev: use HTTPS, or explicitly enable allowHttp for an HTTP API URL');
   }
-  for (const key of ['allowHttp', 'displayInForeground', 'loggingEnabled']) {
+  for (const key of ['allowHttp', 'displayInForeground', 'loggingEnabled', 'iosLiveActivities']) {
     if (options[key] !== undefined && typeof options[key] !== 'boolean') throw new Error(`notification.dev: ${key} must be a boolean`);
   }
   for (const key of ['androidChannelId', 'androidChannelName']) {
@@ -105,6 +105,7 @@ function withNotificationDev(config, options = {}) {
   }]);
   config = withInfoPlist(config, config => {
     config.modResults.NotificationDev = native;
+    if (options.iosLiveActivities === true) config.modResults.NSSupportsLiveActivities = true;
     if (native.allowHttp) {
       config.modResults.NSAppTransportSecurity = { ...config.modResults.NSAppTransportSecurity, NSAllowsArbitraryLoads: true };
     }

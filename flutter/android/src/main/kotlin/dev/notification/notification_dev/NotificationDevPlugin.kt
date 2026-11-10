@@ -35,7 +35,7 @@ class NotificationDevPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Ac
         channel = MethodChannel(binding.binaryMessenger, "dev.notification/sdk")
         channel.setMethodCallHandler(this)
 
-        listOf("states", "pendingOpens", "notifications", "diagnostics").forEach { name ->
+        listOf("states", "pendingOpens", "notifications", "diagnostics", "liveActivities").forEach { name ->
             val stream = NativeStream(name)
             streams.add(stream)
             EventChannel(binding.binaryMessenger, "dev.notification/sdk/$name").setStreamHandler(stream)
@@ -62,6 +62,15 @@ class NotificationDevPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Ac
                 }
                 check(initialized) { "Initialize the Flutter SDK first" }
                 NotificationDev.awaitInitialization()
+                if (call.method.startsWith("liveActivities.")) {
+                    val value = when (call.method) {
+                        "liveActivities.getCapabilities" -> "{\"supported\":false,\"activitiesEnabled\":false,\"pushToStartSupported\":false}"
+                        "liveActivities.getActivities" -> "[]"
+                        else -> throw SdkException(SdkError("UNSUPPORTED_PLATFORM", "Live Activities require iOS 16.1 or later"))
+                    }
+                    result.success(value)
+                    return@launch
+                }
                 val value: Any? = when (call.method) {
                     "getState" -> json.encodeToString(NotificationDev.getState())
                     "getTags" -> json.encodeToString(NotificationDev.getTags())
@@ -218,6 +227,7 @@ class NotificationDevPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, Ac
                         "pendingOpens" -> collect(NotificationDev.pendingOpens, events) { json.encodeToString(it) }
                         "notifications" -> collect(NotificationDev.notifications, events) { json.encodeToString(it) }
                         "diagnostics" -> collect(NotificationDev.diagnostics, events) { json.encodeToString(it) }
+                        "liveActivities" -> events.success("[]")
                     }
                 } catch (failure: CancellationException) {
                     throw failure

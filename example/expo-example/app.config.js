@@ -9,6 +9,7 @@ module.exports = {
     plugins: [
       ...(process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID ? [['onesignal-expo-plugin', { mode: process.env.NOTIFICATION_DEV_APNS_ENVIRONMENT === 'production' ? 'production' : 'development' }]] : []),
       ['@notification.dev/expo', {
+      iosLiveActivities: true,
       projectId: process.env.NOTIFICATION_DEV_PROJECT_ID ?? '00000000-0000-0000-0000-000000000000',
       loggingEnabled: true,
       ...(process.env.NOTIFICATION_DEV_APNS_ENVIRONMENT ? { iosApnsEnvironment: process.env.NOTIFICATION_DEV_APNS_ENVIRONMENT } : {}),

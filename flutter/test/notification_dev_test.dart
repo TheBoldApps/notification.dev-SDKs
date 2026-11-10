@@ -181,6 +181,54 @@ void main() {
     },
   );
 
+  test(
+    'foreground filters preserve recursive JSON and clear with null',
+    () async {
+      final filter = <String, Object?>{
+        'conversationId': '42',
+        'nested': {
+          'values': [null, false, 0, 'value'],
+        },
+      };
+      await sdk.suppressForegroundNotifications(matchingData: filter);
+      expect(calls.last.method, 'suppressForegroundNotifications');
+      expect(
+        jsonDecode((calls.last.arguments as Map)['matchingData'] as String),
+        filter,
+      );
+
+      await sdk.suppressForegroundNotifications();
+      expect(calls.last.arguments, {'matchingData': null});
+    },
+  );
+
+  test(
+    'invalid foreground filters report SDK errors without changing native state',
+    () async {
+      final cycle = <String, Object?>{};
+      cycle['self'] = cycle;
+      for (final filter in <JsonMap>[
+        {},
+        {'x': double.nan},
+        {'x': double.infinity},
+        {'x': Object()},
+        cycle,
+      ]) {
+        await expectLater(
+          sdk.suppressForegroundNotifications(matchingData: filter),
+          throwsA(
+            isA<SdkException>().having(
+              (e) => e.code,
+              'code',
+              'INVALID_ARGUMENT',
+            ),
+          ),
+        );
+      }
+      expect(calls.map((call) => call.method), ['initialize']);
+    },
+  );
+
   test('permission outcomes do not treat settings as granted', () async {
     final result = await sdk.requestPushPermission(settingsFallback: true);
     expect(result.outcome, PushPermissionOutcome.settingsOpened);
@@ -305,6 +353,24 @@ void main() {
           'nested': [1, true, null],
         },
         'deepLink': '/inbox',
+        'collapseId': 'chat:42',
+        'threadId': 'chat:42',
+        'ttlSeconds': 60,
+        'priority': 'normal',
+        'ios': {
+          'sound': null,
+          'badge': 0,
+          'subtitle': 'Chat',
+          'mutableContent': true,
+          'interruptionLevel': 'passive',
+        },
+        'android': {
+          'channelId': 'chat',
+          'groupKey': 'chat:42',
+          'groupSummary': 'Two messages',
+        },
+        'imageUrl': 'https://example.com/image.jpg',
+        'contentAvailable': true,
       };
       final notificationEvents = <NotificationEvent>[];
       final openEvents = <List<NotificationOpen>>[];
@@ -349,6 +415,26 @@ void main() {
             .add(2),
         throwsUnsupportedError,
       );
+      for (final notification in [
+        notificationEvents.single.notification,
+        lateOpens.single.single.notification,
+      ]) {
+        expect(notification.collapseId, 'chat:42');
+        expect(notification.threadId, 'chat:42');
+        expect(notification.ttlSeconds, 60);
+        expect(notification.priority, 'normal');
+        expect(notification.ios!.hasSound, isTrue);
+        expect(notification.ios!.sound, isNull);
+        expect(notification.ios!.badge, 0);
+        expect(notification.ios!.subtitle, 'Chat');
+        expect(notification.ios!.interruptionLevel, 'passive');
+        expect(notification.ios!.mutableContent, isTrue);
+        expect(notification.android!.channelId, 'chat');
+        expect(notification.android!.groupKey, 'chat:42');
+        expect(notification.android!.groupSummary, 'Two messages');
+        expect(notification.imageUrl, 'https://example.com/image.jpg');
+        expect(notification.contentAvailable, isTrue);
+      }
       await sdk.acknowledgeOpen('open');
       expect(
         openEvents.last.single.interactionId,

@@ -73,3 +73,14 @@ See [advanced integration](https://github.com/TheBoldApps/notification.dev-SDKs/
 
 When testing these unreleased source changes, use local native SDK overrides as
 well as the local npm bridge; a released 0.2.0 native binary lacks the new APIs.
+
+## Live Activities
+
+The example includes a **Live Activities** panel for provider setup, capability
+checks, a grant-backed local start, current activity state, and local end.
+Follow the [shared widget setup](../live-activity-widget/README.md) before device
+runs. Use `DefaultLiveActivityAttributes` on your backend and wrap remote
+attributes/content in `data`; the facade takes unwrapped dictionaries. Grants
+must come from your authenticated backend for the current installation and
+association. Do not put a server API key in app configuration. Native startup
+restores provider configuration and observers after the first successful setup.

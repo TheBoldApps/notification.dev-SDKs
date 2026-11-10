@@ -18,13 +18,13 @@ server API key.
 ## Install with Swift Package Manager
 
 In Xcode, choose **File > Add Package Dependencies**, enter
-`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.2.0`,
+`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.3.0`,
 and add the `NotificationDev` product to your app target.
 
 For another Swift package, declare:
 
 ```swift
-.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.2.0")
+.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.3.0")
 ```
 
 Add `.product(name: "NotificationDev", package: "notification.dev-SDKs")` to

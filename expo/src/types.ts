@@ -62,6 +62,7 @@ export interface EventMap {
   pendingOpens: NotificationOpen[];
   notifications: NotificationEvent;
   diagnostics: SdkError;
+  liveActivities: LiveActivityState[];
 }
 export interface Subscription { remove(): void }
 
@@ -76,4 +77,31 @@ export interface AndroidNotificationOptions {
   channelId?: string | null;
   groupKey?: string | null;
   groupSummary?: string | null;
+}
+
+/** SwiftUI widget schema used by the dictionary-based facade. */
+export const DEFAULT_LIVE_ACTIVITY_TYPE = 'DefaultLiveActivityAttributes';
+export interface LiveActivityConfiguration {
+  providerConfigurationId: string;
+  enablePushToStart?: boolean;
+  enablePushToUpdate?: boolean;
+}
+export interface LiveActivityCapabilities {
+  supported: boolean;
+  activitiesEnabled: boolean;
+  pushToStartSupported: boolean;
+}
+export interface LiveActivityStart {
+  activityId: string;
+  attributes: JsonObject;
+  content: JsonObject;
+  /** Short-lived grant issued by your authenticated backend, never a project API key. */
+  registrationToken: string;
+}
+export interface LiveActivityState {
+  activityId: string;
+  nativeActivityId: string;
+  state: 'pending' | 'active' | 'stale' | 'ended' | 'dismissed' | 'unknown';
+  attributes: JsonObject;
+  content: JsonObject;
 }

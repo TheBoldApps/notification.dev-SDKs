@@ -1,6 +1,6 @@
 # iOS SDK integration
 
-This guide targets SDK release `0.2.0`. Inspect the app's existing notification
+This guide targets SDK release `0.3.0`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard or use the `push-provider-setup` skill with MCP
@@ -15,13 +15,13 @@ Swift API for iOS 15+, using direct APNs. Installing a published release require
 ## Install with Swift Package Manager
 
 In Xcode, choose **File > Add Package Dependencies**, enter
-`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.2.0`,
+`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.3.0`,
 and add the `NotificationDev` product to your app target.
 
 For another Swift package, declare:
 
 ```swift
-.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.2.0")
+.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.3.0")
 ```
 
 Add `.product(name: "NotificationDev", package: "notification.dev-SDKs")` to

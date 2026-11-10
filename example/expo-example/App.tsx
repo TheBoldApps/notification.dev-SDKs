@@ -1,3 +1,4 @@
+import { LiveActivityPanel } from './LiveActivityPanel';
 import React, { useEffect, useState } from 'react';
 import { Button, ScrollView, Text, TextInput, View } from 'react-native';
 import { NotificationDev, SdkState, Subscription } from '@notification.dev/expo';
@@ -52,6 +53,7 @@ export default function App() {
         <Button title="Use notification.dev after registration" onPress={() => run(() => updatePushProvider(client, true, externalId || null))} />
         <Button title="Roll back to OneSignal" onPress={() => run(() => updatePushProvider(client, false, externalId || null))} />
       </>}
+      <LiveActivityPanel client={client} />
       <Button title="Refresh" onPress={() => run(() => client.refresh())} />
       {opened.map(open => <View key={open}>
         <Text>{open}</Text>

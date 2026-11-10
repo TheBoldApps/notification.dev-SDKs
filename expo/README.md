@@ -133,12 +133,17 @@ use `pendingOpens` for taps. The SDK does not launch deep links automatically.
 ```ts
 let queue = Promise.resolve();
 const opens = sdk.addListener("pendingOpens", (pending) => {
-  queue = queue.then(async () => {
-    for (const open of pending) {
-      await navigateFromNotification(open.notification.deepLink, open.notification.data);
-      await sdk.acknowledgeOpen(open.interactionId);
-    }
-  }).catch(reportOpenError);
+  queue = queue
+    .then(async () => {
+      for (const open of pending) {
+        await navigateFromNotification(
+          open.notification.deepLink,
+          open.notification.data,
+        );
+        await sdk.acknowledgeOpen(open.interactionId);
+      }
+    })
+    .catch(reportOpenError);
 });
 ```
 
@@ -236,3 +241,27 @@ Copyright 2026 The Bold Apps, LLC. Apache-2.0; see [LICENSE](LICENSE) and [NOTIC
 ## Advanced push
 
 See the [advanced integration guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md) for platform options, app/environment routing, foreground suppression, images, credential revocation, and provider coexistence.
+
+## Advanced API coverage
+
+The bridge exposes foreground suppression through
+`suppressForegroundNotifications`, preserves the advanced iOS/Android options
+in notification events and pending opens, and supports `iosApnsEnvironment` in
+startup configuration. App identifiers are populated by the native SDK.
+Suppression matches every supplied custom-data field and is cleared by login,
+logout, or process restart. Pass a nonempty JSON object to enable it or null to
+clear it. iOS background alerts remain controlled by the OS.
+
+Images on iOS require a Notification Service Extension embedded in the host app;
+the bridge does not create that target automatically. See the
+[iOS image setup](../docs/integration/ios.md#ios-image-notifications).
+The `liveActivities` facade supports configuration, capabilities, local start/end,
+listing, and replaying activity state. It uses the shared Swift implementation
+and still requires a native SwiftUI widget extension. Swift's `resetLocalState()`
+remains outside the bridge. See the [Live Activity facade guide](../docs/live-activity-facades.md)
+for usage, server grants/payloads and platform behavior.
+
+This source branch adds native APIs absent from the existing `0.2.0` tag. Before
+publishing, release matching native SDK artifacts under a new version and update
+the bridge's Maven/SPM dependency pins together. Contributor builds can use local
+native sources; their success does not validate the existing published pins.
