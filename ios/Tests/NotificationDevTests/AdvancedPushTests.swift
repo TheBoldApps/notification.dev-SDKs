@@ -2,7 +2,7 @@ import UserNotifications
 import XCTest
 
 @testable import NotificationDev
-import NotificationDevServiceExtension
+@testable import NotificationDevServiceExtension
 
 final class AdvancedPushTests: XCTestCase {
     func testRoutingUsesProvisioningEntitlementRatherThanBuildMode() throws {
@@ -69,6 +69,30 @@ final class AdvancedPushTests: XCTestCase {
         }
     }
 
+    func testImageAttachmentRemainsReadableAfterContentHandlerCompletes() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [ImageFixtureProtocol.self]
+        let service = NotificationDevServiceExtension.NotificationService(configuration: configuration)
+        let content = UNMutableNotificationContent()
+        content.title = "Image test"
+        content.userInfo = ["notification_dev": ["imageUrl": "https://image.test/fixture.png"]]
+        let request = UNNotificationRequest(identifier: "image", content: content, trigger: nil)
+        let completed = expectation(description: "Image attached")
+        var imageURL: URL?
+
+        service.didReceive(request) { result in
+            XCTAssertEqual(result.title, "Image test")
+            XCTAssertEqual(result.attachments.count, 1)
+            imageURL = result.attachments.first?.url
+            completed.fulfill()
+        }
+        await fulfillment(of: [completed], timeout: 2)
+
+        let url = try XCTUnwrap(imageURL)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        XCTAssertEqual(try Data(contentsOf: url), ImageFixtureProtocol.png)
+    }
+
     @MainActor
     func testForwarderCapturesPreviousDelegateOnce() {
         let center = TestNotificationCenter()
@@ -86,4 +110,24 @@ private final class HostDelegate: NSObject, UNUserNotificationCenterDelegate {}
 
 private final class TestNotificationCenter: NotificationCenterDelegating {
     weak var delegate: UNUserNotificationCenterDelegate?
+}
+
+private final class ImageFixtureProtocol: URLProtocol, @unchecked Sendable {
+    static let png = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a3ioAAAAASUVORK5CYII=")!
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        request.url?.host == "image.test"
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": "image/png", "Content-Length": String(Self.png.count)])!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Self.png)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }

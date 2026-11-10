@@ -130,12 +130,17 @@ use `pendingOpens` for taps. The SDK does not launch deep links automatically.
 ```ts
 let queue = Promise.resolve();
 const opens = sdk.addListener("pendingOpens", (pending) => {
-  queue = queue.then(async () => {
-    for (const open of pending) {
-      await navigateFromNotification(open.notification.deepLink, open.notification.data);
-      await sdk.acknowledgeOpen(open.interactionId);
-    }
-  }).catch(reportOpenError);
+  queue = queue
+    .then(async () => {
+      for (const open of pending) {
+        await navigateFromNotification(
+          open.notification.deepLink,
+          open.notification.data,
+        );
+        await sdk.acknowledgeOpen(open.interactionId);
+      }
+    })
+    .catch(reportOpenError);
 });
 ```
 
@@ -226,3 +231,15 @@ Copyright 2026 The Bold Apps, LLC. Licensed under
 ## Advanced push and coexistence
 
 See the [advanced integration guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md) for payload options, app/APNs routing, server-acknowledged `pushTokenRegistered`, foreground suppression, images, revocation, and provider forwarding. Native adapters provide these capabilities underneath Flutter and Expo.
+
+## Images on iOS
+
+Set `imageUrl`; the backend automatically enables APNs image processing. A
+Notification Service Extension must be embedded in the installed iOS app. The main SDK
+alone does not add that extension. Link the `NotificationDevServiceExtension`
+Swift package product to a native extension target, use the app's signing team
+and an app-prefixed extension bundle ID, and configure its principal class as
+shown in the [iOS image setup](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/integration/ios.md#ios-image-notifications).
+Use a direct HTTPS JPEG/PNG/GIF URL, no redirects, at most 2 MiB, downloadable
+within five seconds. Rebuild the native app after adding the extension, then
+send a fresh background notification; a hot reload cannot install an extension.

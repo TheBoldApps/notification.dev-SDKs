@@ -7,13 +7,22 @@ final class SecureStorage {
     private let file: URL
     private let key: SymmetricKey
 
+    private static func directory(_ supplied: URL?) throws -> URL {
+        try supplied ?? FileManager.default.url(
+            for: .applicationSupportDirectory, in: .userDomainMask,
+            appropriateFor: nil, create: true
+        ).appendingPathComponent("dev.notification.sdk", isDirectory: true)
+    }
+
+    static func reset(directory: URL? = nil) throws {
+        let snapshot = try Self.directory(directory).appendingPathComponent("state.aesgcm")
+        if FileManager.default.fileExists(atPath: snapshot.path) {
+            try FileManager.default.removeItem(at: snapshot)
+        }
+    }
+
     init(directory: URL? = nil, key suppliedKey: SymmetricKey? = nil) throws {
-        let root =
-            try directory
-            ?? FileManager.default.url(
-                for: .applicationSupportDirectory, in: .userDomainMask,
-                appropriateFor: nil, create: true
-            ).appendingPathComponent("dev.notification.sdk", isDirectory: true)
+        let root = try Self.directory(directory)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         var excluded = root
         var values = URLResourceValues()

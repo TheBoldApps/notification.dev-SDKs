@@ -7,6 +7,33 @@ import class NotificationCore.IosBridge
 @testable import NotificationDev
 
 final class StorageTests: XCTestCase {
+    func testResetDiscardsSnapshotPreservesOtherFilesAndAllowsFreshState() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let key = SymmetricKey(size: .bits256)
+        let storage = try SecureStorage(directory: directory, key: key)
+        let hostFile = directory.appendingPathComponent("host.txt")
+        try Data("host data".utf8).write(to: hostFile)
+        try storage.save("old installation and pending work")
+
+        try SecureStorage.reset(directory: directory)
+        try SecureStorage.reset(directory: directory)
+        XCTAssertNil(try storage.load())
+        XCTAssertEqual(try String(contentsOf: hostFile, encoding: .utf8), "host data")
+        try storage.save("fresh installation")
+        XCTAssertEqual(try SecureStorage(directory: directory, key: key).load(), "fresh installation")
+    }
+
+    func testResetCanRemoveAnUnreadableSnapshotWithoutDecryptingIt() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let storage = try SecureStorage(directory: directory, key: SymmetricKey(size: .bits256))
+        try Data("unreadable snapshot".utf8).write(to: directory.appendingPathComponent("state.aesgcm"))
+        XCTAssertThrowsError(try storage.load())
+        try SecureStorage.reset(directory: directory)
+        XCTAssertNil(try storage.load())
+    }
+
     func testConfigurationDefaultsToHostedApiAndPreservesOverrides() {
         XCTAssertEqual(SdkConfig(projectId: "project").baseURL.absoluteString, "https://app.notification.dev/")
         XCTAssertFalse(SdkConfig(projectId: "project").allowHTTP)

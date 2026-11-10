@@ -72,11 +72,27 @@ Build simulator runs with signing enabled (`CODE_SIGNING_ALLOWED=YES
 CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO`) so the example's application and
 Keychain entitlements are embedded. The unsigned commands above verify compilation;
 they do not produce a runnable Keychain integration. To change the launch project
-or API after initialization, use a fresh app installation or simulator: SDK state
-is bound to its project and API URL.
+or API, stop the app, update the scheme environment variables, and run again.
+If initialization reports `CONFIGURATION_CHANGED`, tap **Reset SDK state and
+reconnect**. This creates a fresh SDK installation and discards pending local SDK
+work while leaving backend records and other app data intact.
 
 ### Random number server
 
 The [randoms Python server](randoms-server/README.md) starts a widget titled
 `randoms` and sends random numbers through the server-to-server API every two
 seconds. It uses a server-side project API key and exposes a local status endpoint.
+
+## Image notifications
+
+The app embeds `NotificationExampleServiceExtension`, which links only the
+`NotificationDevServiceExtension` Swift package product. Use the same signing
+team as the main app and an extension bundle ID prefixed by the main app bundle
+ID (for example, `<app-bundle-id>.service-extension`).
+
+Set the notification's image URL; the backend automatically enables iOS image
+processing. Use a direct HTTPS JPEG, PNG, or GIF URL, no
+redirects, at most 2 MiB, downloadable within five seconds. Run the updated app
+on the device, send a fresh notification with the app in the background, then
+press and hold it to inspect the attachment. Already delivered notifications
+are not enriched retroactively. A download failure preserves the original alert.

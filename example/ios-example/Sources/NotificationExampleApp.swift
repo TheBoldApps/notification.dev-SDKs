@@ -32,7 +32,28 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
                 defaults.set(value, forKey: key)
             }
         }
+        model.resetLocalState = { [weak self] in self?.resetAndStartSdk() }
+        startSdk()
+
+        return true
+    }
+
+    private func resetAndStartSdk() {
+        guard !model.initializing else { return }
+        do {
+            try NotificationDev.resetLocalState()
+            startSdk()
+        } catch { model.showError(error) }
+    }
+
+    private func startSdk() {
+        guard !model.initializing else { return }
+        let defaults = UserDefaults.standard
+        model.initializing = true
+        model.errorMessage = nil
+        model.message = "Starting…"
         startup = Task {
+            defer { model.initializing = false }
             do {
                 let client = try await NotificationDev.initialize(
                     SdkConfig(
@@ -62,8 +83,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
                 throw error
             }
         }
-
-        return true
     }
 
     func application(
@@ -114,6 +133,8 @@ final class ExampleModel: ObservableObject {
     @Published var state: SdkState?
     @Published var opens: [NotificationOpen] = []
     @Published var message = "Starting…"
+    @Published var initializing = false
+    var resetLocalState: (() -> Void)?
     @Published var errorMessage: String?
     private(set) var client: NotificationDev?
     private var tasks: [Task<Void, Never>] = []
@@ -182,6 +203,14 @@ struct ContentView: View {
                         Text(error).textSelection(.enabled)
                     } else if let error = model.state?.lastError {
                         Text("\(error.code): \(error.message)").textSelection(.enabled)
+                    }
+                    if model.client == nil && model.errorMessage != nil {
+                        Button("Reset SDK state and reconnect", role: .destructive) {
+                            model.resetLocalState?()
+                        }
+                        .disabled(model.initializing)
+                        Text("Creates a fresh SDK installation and discards pending SDK changes on this device. Backend data is unchanged.")
+                            .font(.caption)
                     }
                     Button("Refresh") { model.run { _ = try await $0.refresh() } }
                 }

@@ -5,6 +5,7 @@ import UserNotifications
 /// Link only this product in a Notification Service Extension target.
 /// Other providers can be handled by overriding didReceive and forwarding unowned requests.
 open class NotificationService: UNNotificationServiceExtension, URLSessionDataDelegate, @unchecked Sendable {
+    private let configuration: URLSessionConfiguration
     private let lock = NSLock()
     private var handler: ((UNNotificationContent) -> Void)?
     private var content: UNMutableNotificationContent?
@@ -12,6 +13,16 @@ open class NotificationService: UNNotificationServiceExtension, URLSessionDataDe
     private var bytes = Data()
     private var fileExtension: String?
     private static let maximumBytes = 2 * 1024 * 1024
+
+    public override init() {
+        configuration = .ephemeral
+        super.init()
+    }
+
+    internal init(configuration: URLSessionConfiguration) {
+        self.configuration = configuration
+        super.init()
+    }
 
     public static func owns(_ request: UNNotificationRequest) -> Bool {
         request.content.userInfo["notification_dev"] != nil
@@ -32,7 +43,7 @@ open class NotificationService: UNNotificationServiceExtension, URLSessionDataDe
             contentHandler(request.content)
             return
         }
-        let configuration = URLSessionConfiguration.ephemeral
+        let configuration = self.configuration
         configuration.timeoutIntervalForRequest = 5
         configuration.timeoutIntervalForResource = 5
         configuration.urlCache = nil
@@ -112,14 +123,19 @@ open class NotificationService: UNNotificationServiceExtension, URLSessionDataDe
             let height = properties[kCGImagePropertyPixelHeight] as? Int,
             width > 0, height > 0, width <= 2048, height <= 2048 {
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-            defer { try? FileManager.default.removeItem(at: directory) }
             do {
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
                 let file = directory.appendingPathComponent("image.\(suffix)")
                 try data.write(to: file)
                 let attachment = try UNNotificationAttachment(identifier: "notification_dev.image", url: file)
                 content.attachments.append(attachment)
-            } catch { /* Optional image failure preserves the original alert and userInfo. */ }
+                // iOS imports the file after the content handler receives it. Keep it
+                // available in the extension's temporary directory until then; the OS
+                // manages temporary storage cleanup.
+            } catch {
+                try? FileManager.default.removeItem(at: directory)
+                // Optional image failure preserves the original alert and userInfo.
+            }
         }
         handler(content)
     }

@@ -93,7 +93,7 @@ await sdk.suppressForegroundNotifications();
 ```
 
 ```typescript
-await sdk.suppressForegroundNotifications({ conversationId: '42' });
+await sdk.suppressForegroundNotifications({ conversationId: "42" });
 await sdk.suppressForegroundNotifications(null);
 ```
 
@@ -102,19 +102,24 @@ Swift also supports `sdk.foregroundPresentation`, a synchronous closure returnin
 
 ## iOS image attachments
 
-Add a Notification Service Extension target in Xcode. Link only the
+Add a Notification Service Extension target in Xcode and embed its `.appex` in
+the main app. Match the app signing team and use an extension bundle ID prefixed
+by the app bundle ID. Rebuild and install the updated app before sending a fresh
+notification. Link only the
 `NotificationDevServiceExtension` Swift package product to that target, with
 `APPLICATION_EXTENSION_API_ONLY = YES`. Use this principal class:
 
 ```swift
 import NotificationDevServiceExtension
 
-final class NotificationService: NotificationDevServiceExtension.NotificationService {}
+final class NotificationService: NotificationDevServiceExtension.NotificationService, @unchecked Sendable {}
 ```
 
 Configure `NSExtensionPointIdentifier` as `com.apple.usernotifications.service`
 and `NSExtensionPrincipalClass` as `$(PRODUCT_MODULE_NAME).NotificationService`.
-Send `ios.mutableContent: true` and `imageUrl`. The helper accepts JPEG/PNG/GIF,
+Set `imageUrl`; the backend automatically adds `aps.mutable-content: 1`, even
+when `ios.mutableContent` is omitted or false. Explicit `ios.mutableContent: true`
+also enables extension processing for messages without an image. The helper accepts JPEG/PNG/GIF,
 limits downloads to 2 MiB and five seconds, rejects redirects and dimensions over
 2048 pixels, and preserves the original alert/userInfo on failure or expiry.
 Use HTTPS in production. The extension does not initialize the app SDK, send

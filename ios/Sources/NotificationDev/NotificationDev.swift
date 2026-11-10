@@ -30,6 +30,16 @@ public final class NotificationDev {
     private var active = true
     private var syncRequested = false
 
+    /// Discards persisted SDK credentials and pending work before initialization.
+    /// The next initialization creates a fresh installation; server records are unchanged.
+    public static func resetLocalState() throws {
+        guard shared == nil else {
+            throw SdkError(code: "ALREADY_INITIALIZED", message: "Restart the app before resetting an active SDK client")
+        }
+        try SecureStorage.reset()
+        clearDeliveredNotifications()
+    }
+
     public static func initialize(_ config: SdkConfig) async throws -> NotificationDev {
         if let existing = shared {
             var comparable = config

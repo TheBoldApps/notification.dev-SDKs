@@ -134,3 +134,56 @@ service and its separate backend are not covered by this license.
 ## Advanced push
 
 See the [advanced integration guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md) for platform options, app/environment routing, foreground suppression, images, credential revocation, and provider coexistence.
+
+## Reset local development state
+
+If initialization reports `CONFIGURATION_CHANGED` after changing projects or API
+hosts, call `try NotificationDev.resetLocalState()` before initializing again.
+This discards local SDK credentials, pending edits/events, and pending opens, and
+the next initialization creates a fresh installation. It does not delete backend
+records or other app data. An already initialized client must be stopped by
+restarting the app before reset. The iOS example offers **Reset SDK state and
+reconnect** after an initialization failure, so reinstalling is unnecessary.
+
+## iOS image notifications
+
+An `imageUrl` alone does not attach an image on iOS. The installed app must embed
+an enabled **Notification Service Extension**, and the backend automatically enables image processing when
+`imageUrl` is set, even if `ios.mutableContent` is omitted or false. Installing the main SDK package alone does not add
+this extension.
+
+1. Add a Notification Service Extension target to the app in Xcode. Embed its
+   `.appex` in the main app and add a target dependency so it builds with the app.
+2. Link only the `NotificationDevServiceExtension` Swift package product to the
+   extension, with `APPLICATION_EXTENSION_API_ONLY = YES`.
+3. Match the main app's signing team. Use a distinct extension bundle ID prefixed
+   with the main app bundle ID, such as `<app-bundle-id>.service-extension`.
+4. Set the extension's Info.plist entries under `NSExtension`:
+   `NSExtensionPointIdentifier = com.apple.usernotifications.service` and
+   `NSExtensionPrincipalClass = $(PRODUCT_MODULE_NAME).NotificationService`.
+5. Use this extension principal class:
+
+```swift
+import NotificationDevServiceExtension
+
+final class NotificationService: NotificationDevServiceExtension.NotificationService, @unchecked Sendable {}
+```
+
+Set the image URL alongside the title and body:
+
+```json
+{
+  "title": "Image test",
+  "body": "Expand to see the image",
+  "imageUrl": "https://your-host.example/image.jpg"
+}
+```
+
+Use a direct HTTPS JPEG, PNG, or GIF URL with no redirects, at most 2 MiB,
+downloadable within five seconds. In the dashboard, just set the image URL. Build and run the updated app on a
+physical device, background it, and send a fresh notification. Press and hold
+the new notification to inspect its image; already delivered notifications are
+not enriched retroactively. If the image is missing, check the embedded extension,
+its principal class, and the image's HTTP response,
+content type, size, and download time. Download failures preserve the original
+alert. See the [native example](https://github.com/TheBoldApps/notification.dev-SDKs/tree/main/example/ios-example/ServiceExtension).
