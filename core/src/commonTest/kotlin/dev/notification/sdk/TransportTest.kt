@@ -20,6 +20,25 @@ class TransportTest {
     private val config = CoreConfig("project", "https://example.com/prefix/")
     private val state = ServerState("installation", "association", SubscriberState("user"), revision = 1, updatedAt = "now")
 
+    @Test fun notificationOpenUsesItsIndividualResultEvenInsideHttp200() = runTest {
+        for (retryable in listOf(true, false)) {
+            val event = QueuedEvent("opened:delivery", "association", Event.Interaction("delivery", "opened", 100L))
+            val transport = HttpTransport(config, client = MockEngine { request ->
+                val body = wireJson.parseToJsonElement((request.body as TextContent).text).jsonObject
+                assertEquals("association", body["associationId"]!!.jsonPrimitive.content)
+                val operation = body["operations"]!!.jsonArray.single().jsonObject
+                assertEquals(event.id, operation["operationId"]!!.jsonPrimitive.content)
+                assertEquals("delivery", operation["interaction"]!!.jsonObject["deliveryId"]!!.jsonPrimitive.content)
+                respond("""{"results":[{"operationId":"opened:delivery","succeeded":false,"code":"DELIVERY_INSTALLATION_MISMATCH","retryable":$retryable}]}""")
+            })
+            try {
+                val error = assertFailsWith<TransportException> { transport.sendEvent("installation", "credential", event) }
+                assertEquals("DELIVERY_INSTALLATION_MISMATCH", error.code)
+                assertEquals(retryable, error.retryable)
+            } finally { transport.close() }
+        }
+    }
+
     @Test fun bootstrapUsesTheExactPersistedBodyRatherThanCurrentMetadata() = runTest {
         var sent: String? = null
         val engine = MockEngine { request ->

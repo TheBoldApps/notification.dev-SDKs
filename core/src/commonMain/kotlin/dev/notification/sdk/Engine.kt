@@ -475,15 +475,22 @@ internal class Engine(
         id
     }
 
-    private fun addEvent(event: QueuedEvent): Boolean {
+    private fun addEvent(event: QueuedEvent, prioritizeOpen: Boolean = false): Boolean {
         if (data.events.any { it.id == event.id }) {
             return true
         }
-        val events = data.events + event
-        if (events.size > 1000 || wireJson.encodeToString(events).encodeToByteArray().size > 5 * 1024 * 1024) {
-            return false
+        val events = (if (prioritizeOpen) listOf(event) + data.events else data.events + event).toMutableList()
+        var discarded = false
+        while (events.size > 1000 || wireJson.encodeToString(events).encodeToByteArray().size > 5 * 1024 * 1024) {
+            // Preserve confirmed taps ahead of custom analytics, including app_opened.
+            // Never evict another notification interaction to make room.
+            val index = if (prioritizeOpen) events.indexOfFirst { it.event is Event.Track } else -1
+            if (index == -1) return false
+            events.removeAt(index)
+            discarded = true
         }
         data = data.copy(events = events)
+        if (discarded) report("EVENT_DISCARDED")
 
         return true
     }
@@ -792,7 +799,9 @@ internal class Engine(
     }
 
     suspend fun open(payload: NotificationPayload): Boolean = mutex.withLock {
-        if (!eligible(payload)) {
+        val rejection = ineligibleReason(payload)
+        if (rejection != null) {
+            report("NOTIFICATION_OPEN_$rejection")
             return@withLock false
         }
         val id = "open:${payload.deliveryId}"
@@ -812,13 +821,21 @@ internal class Engine(
         }
     }
 
-    private fun eligible(payload: NotificationPayload): Boolean =
-        payload.version == 1 && !data.credentialRevoked && !data.identity.isPending && data.device.optedIn &&
-            payload.expiresAt > now() && payload.associationId == data.snapshot?.associationId
+    private fun eligible(payload: NotificationPayload): Boolean = ineligibleReason(payload) == null
+
+    private fun ineligibleReason(payload: NotificationPayload): String? = when {
+        payload.version != 1 -> "UNSUPPORTED_VERSION"
+        data.credentialRevoked -> "CREDENTIAL_REVOKED"
+        data.identity.isPending -> "IDENTITY_PENDING"
+        !data.device.optedIn -> "OPTED_OUT"
+        payload.expiresAt <= now() -> "EXPIRED"
+        payload.associationId != data.snapshot?.associationId -> "ASSOCIATION_MISMATCH"
+        else -> null
+    }
 
     private fun interaction(payload: NotificationPayload, kind: String) {
         if (!addEvent(QueuedEvent("$kind:${payload.deliveryId}", payload.associationId,
-                Event.Interaction(payload.deliveryId, kind, now())))) {
+                Event.Interaction(payload.deliveryId, kind, now())), prioritizeOpen = kind == "opened")) {
             report("QUEUE_FULL")
         }
     }

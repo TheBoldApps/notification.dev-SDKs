@@ -250,3 +250,13 @@ Identical Live Activity configuration is idempotent. A valid provider/options
 change is saved for the next native launch and reports
 `LIVE_ACTIVITY_RESTART_REQUIRED`; restart the app to activate it. Invalid
 configuration leaves working startup settings intact.
+
+## Diagnose missing notification taps
+
+Follow the [controlled notification-open trace](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/notification-open-diagnostics.md)
+for sanitized capture and API correlation. `pendingOpens` is the navigation
+queue; acknowledging it does not acknowledge analytics delivery. HTTP 200 is not
+proof that an `opened` operation succeeded: check its individual result.
+Diagnostics are live events. SDK 0.2.0 has no retrospective diagnostics export;
+an installed build needs existing instrumentation or a compatible app update
+to capture new evidence. Backend deployment does not update native SDKs.

@@ -104,6 +104,26 @@ final class AdvancedPushTests: XCTestCase {
         XCTAssertTrue(center.delegate === forwarder)
         XCTAssertTrue(forwarder.forwardingDelegate === delegate)
     }
+
+    @MainActor
+    func testReplacedDelegateReportsConflictWithoutCreatingAForwardingCycle() {
+        let center = TestNotificationCenter()
+        let original = HostDelegate()
+        let replacement = HostDelegate()
+        var errors: [SdkError] = []
+        center.delegate = original
+        let forwarder = NotificationDelegateForwarder(
+            client: { throw CancellationError() },
+            diagnostic: { if let error = $0 as? SdkError { errors.append(error) } })
+        forwarder.installDelegate(on: center)
+        center.delegate = replacement
+
+        forwarder.installDelegate(on: center)
+
+        XCTAssertEqual(errors.map(\.code), ["NOTIFICATION_DELEGATE_REPLACED"])
+        XCTAssertTrue(center.delegate === replacement)
+        XCTAssertTrue(forwarder.forwardingDelegate === original)
+    }
 }
 
 private final class HostDelegate: NSObject, UNUserNotificationCenterDelegate {}

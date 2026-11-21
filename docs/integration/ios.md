@@ -1,6 +1,6 @@
 # iOS SDK integration
 
-This guide targets SDK release `0.3.0`. Inspect the app's existing notification
+This guide targets SDK release `0.3.1`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard or use the `push-provider-setup` skill with MCP
@@ -15,13 +15,13 @@ Swift API for iOS 15+, using direct APNs. Installing a published release require
 ## Install with Swift Package Manager
 
 In Xcode, choose **File > Add Package Dependencies**, enter
-`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.3.0`,
+`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.3.1`,
 and add the `NotificationDev` product to your app target.
 
 For another Swift package, declare:
 
 ```swift
-.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.3.0")
+.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.3.1")
 ```
 
 Add `.product(name: "NotificationDev", package: "notification.dev-SDKs")` to
@@ -315,3 +315,13 @@ not enriched retroactively. If the image is missing, check the embedded extensio
 its principal class, and the image's HTTP response,
 content type, size, and download time. Download failures preserve the original
 alert. See the [native example](https://github.com/TheBoldApps/notification.dev-SDKs/tree/main/example/ios-example/ServiceExtension).
+
+## Diagnose missing notification taps
+
+Follow the [controlled notification-open trace](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/notification-open-diagnostics.md)
+for sanitized capture and API correlation. `pendingOpens` is the navigation
+queue; acknowledging it does not acknowledge analytics delivery. HTTP 200 is not
+proof that an `opened` operation succeeded: check its individual result.
+Diagnostics are live events. SDK 0.2.0 has no retrospective diagnostics export;
+an installed build needs existing instrumentation or a compatible app update
+to capture new evidence. Backend deployment does not update native SDKs.
