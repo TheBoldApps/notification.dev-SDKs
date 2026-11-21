@@ -59,6 +59,9 @@ public final class NotificationDevAppDelegateSubscriber: ExpoAppDelegateSubscrib
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    // UIKit delivers notification responses after launch. Own the delegate before
+    // returning, while allowing the callback to await asynchronous SDK startup.
+    MainActor.assumeIsolated { NativeStartup.delegate.install() }
     Task { @MainActor in _ = try? await NativeStartup.client() }
     return true
   }

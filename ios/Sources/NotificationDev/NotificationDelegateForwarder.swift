@@ -28,7 +28,12 @@ public final class NotificationDelegateForwarder: NSObject, UNUserNotificationCe
     }
 
     internal func installDelegate(on center: NotificationCenterDelegating) {
-        if installed || center.delegate === self { return }
+        if center.delegate === self { return }
+        if installed {
+            diagnostic(SdkError(code: "NOTIFICATION_DELEGATE_REPLACED",
+                message: "The notification delegate changed after SDK setup; forward notification.dev responses to handleResponse."))
+            return
+        }
         installed = true
         forwardingDelegate = center.delegate
         center.delegate = self

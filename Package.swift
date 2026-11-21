@@ -14,8 +14,8 @@ let package = Package(
         .target(name: "NotificationDevActivityKit", path: "ios/Sources/NotificationDevActivityKit"),
         .binaryTarget(
             name: "NotificationCore",
-            url: "https://github.com/TheBoldApps/notification.dev-SDKs/releases/download/0.3.0/NotificationCore.xcframework.zip",
-            checksum: "b41425a461e7d75c2f26462632f09930694fb86c4e7a7397a8029bcc01a4477c"
+            url: "https://github.com/TheBoldApps/notification.dev-SDKs/releases/download/0.3.1/NotificationCore.xcframework.zip",
+            checksum: "7824f50128f74c3b5459dd0ca0b3e2a99c9f5f90c22f55dce9c3a1a416f98309"
         ),
         .target(
             name: "NotificationDev",
