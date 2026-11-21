@@ -21,6 +21,10 @@ and build, native SDK version, OS version, exact UTC time, and app state
 
 ## Capture SDK diagnostics
 
+For the published Expo 0.2.0 wrapper, use the
+[passive capture example](examples/expo-0.2-notification-capture.md). It selects
+fields explicitly and isolates journal failures from other SDK observers.
+
 SDK 0.2.0 exposes live diagnostics and replayable `pendingOpens` natively. Check
 the shipped wrapper version for its API. There is no remote debugging endpoint,
 retrospective diagnostics archive, or analytics queue export. An installed build
