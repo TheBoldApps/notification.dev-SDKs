@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 (unreleased)
+
+- Use native SDK 0.3.1 notification-open queue prioritization and diagnostic codes.
+- Diagnose replaced iOS notification delegates.
+- Install the iOS delegate synchronously before the launch callback returns.
+
 ## 0.3.0
 
 - Update native Android and Swift dependencies to 0.3.0.

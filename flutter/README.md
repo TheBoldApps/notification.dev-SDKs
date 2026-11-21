@@ -19,7 +19,7 @@ server API key.
 
 ```yaml
 dependencies:
-  notification_dev: ^0.3.0
+  notification_dev: ^0.3.1
 ```
 
 Run `flutter pub get`. Android downloads the native SDK from Maven Central; iOS downloads the released Swift package from GitHub. No native SDK checkout or local Gradle composite build is required.

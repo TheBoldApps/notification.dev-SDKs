@@ -21,7 +21,7 @@ The helper only changes contributor example projects; it is not a production
 config plugin. Production Expo apps should manage their widget target with a
 config plugin or checked-in native project.
 
-The helper uses the released native Swift package at `0.3.0` by default. Its
+The helper uses the released native Swift package at `0.3.1` by default. Its
 optional second argument selects a local native package directory. Use
 `NOTIFICATION_DEV_SWIFT_PACKAGE_PATH` for the bridge's matching local package too.
 Before installing on a device, select the same signing team for app and widget,
