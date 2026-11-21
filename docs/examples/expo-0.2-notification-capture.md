@@ -10,12 +10,21 @@ open. Capture initialization rejection codes in the app's existing startup
 error handler, since an observer cannot capture a failure before it attaches.
 
 ```ts
-const sdk = await NotificationDev.initialize();
-const capture = attachNotificationCapture(sdk, (entry) => qaJournal.append(entry));
+import { NotificationDev } from '@notification.dev/expo';
+import { attachNotificationCapture } from './expo-0.2-notification-capture';
 
-// Existing navigation handling stays in its existing owner.
-// At QA export, include capture.captureFailed so missing records are visible.
-// After the test, remove only these capture observers:
+const sdk = await NotificationDev.initialize();
+const capture = attachNotificationCapture(sdk, async (entry) => {
+  await qaJournal.append(entry);
+});
+```
+
+Keep the observers attached for the entire test. Existing navigation handling
+stays in its current owner. At QA export, include `capture.captureFailed` so
+missing records are visible. Only after testing finishes, remove these capture
+observers:
+
+```ts
 capture.stop();
 ```
 
