@@ -18,6 +18,8 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import java.security.KeyStore
@@ -109,6 +111,9 @@ internal class NotificationPresenter(
             val sender = Person.Builder().setKey(communication.sender.id)
                 .setName(communication.sender.name)
                 .apply { if (avatar != null) setIcon(IconCompat.createWithBitmap(avatar)) }.build()
+            conversationShortcut(payload, communication, sender, avatar)?.let { shortcutId ->
+                builder.setShortcutId(shortcutId)
+            }
             builder.setCategory(NotificationCompat.CATEGORY_MESSAGE)
                 .addPerson(sender)
                 .setStyle(NotificationCompat.MessagingStyle(Person.Builder().setName("You").build())
@@ -134,6 +139,80 @@ internal class NotificationPresenter(
                 .setContentIntent(pending).setOnlyAlertOnce(true).build()
             manager.notify(TAG + "group:" + payload.associationId + ":" + group, 0, notification)
         }
+    }
+
+    private fun conversationShortcut(
+        payload: NotificationPayload,
+        communication: CommunicationNotification,
+        sender: Person,
+        avatar: Bitmap?
+    ): String? = runCatching {
+        val destination = payload.deepLink?.takeIf(::isSafeConversationDestination) ?: return null
+        // A launcher shortcut opens the conversation, never a particular delivery.
+        // Do not reuse the signed notification PendingIntent or its analytics extras.
+        val route = Intent(Intent.ACTION_VIEW, Uri.parse(destination)).setPackage(context.packageName)
+        val target = context.packageManager.resolveActivity(route, PackageManager.MATCH_DEFAULT_ONLY)
+            ?.activityInfo?.takeIf { it.packageName == context.packageName } ?: return null
+        route.setClassName(target.packageName, target.name)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        val id = communicationShortcutId(payload.associationId, communication.conversationId)
+        val launcher = context.packageManager.getLaunchIntentForPackage(context.packageName)?.component ?: return null
+        if (ShortcutManagerCompat.isRateLimitingActive(context)) return null
+        val dynamic = ShortcutManagerCompat.getDynamicShortcuts(context).filter { it.activity == launcher }
+        val maximum = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
+        if (dynamic.none { it.id == id } && dynamic.size >= maximum) {
+            val oldestOwned = dynamic.filter { it.id.startsWith(COMMUNICATION_SHORTCUT_PREFIX) }
+                .minByOrNull { it.lastChangedTimestamp } ?: return null
+            // Only drop its launcher/dynamic slot. Cached long-lived and pinned state
+            // remains valid, including the user's conversation preferences.
+            ShortcutManagerCompat.removeDynamicShortcuts(context, listOf(oldestOwned.id))
+        }
+        val shortcut = ShortcutInfoCompat.Builder(context, id)
+            .setShortLabel(communication.sender.name)
+            .setActivity(launcher)
+            .setIntent(route)
+            .setPerson(sender)
+            .setIsConversation()
+            .setLongLived(true)
+            .setIcon(if (avatar == null) IconCompat.createWithResource(context, config.smallIcon)
+                else IconCompat.createWithBitmap(avatar))
+            .build()
+        // Unlike pushDynamicShortcut, this cannot evict an unrelated host-app shortcut.
+        if (ShortcutManagerCompat.addDynamicShortcuts(context, listOf(shortcut))) id else null
+    }.getOrElse {
+        diagnostic(SdkError("COMMUNICATION_SHORTCUT_UNAVAILABLE", "Conversation shortcut is unavailable; showing the message normally"))
+        null
+    }
+
+    fun clearConversationShortcuts() = runCatching {
+        val owned = ShortcutManagerCompat.getShortcuts(context,
+            ShortcutManagerCompat.FLAG_MATCH_DYNAMIC or ShortcutManagerCompat.FLAG_MATCH_PINNED or
+                ShortcutManagerCompat.FLAG_MATCH_CACHED)
+            .filter { it.id.startsWith(COMMUNICATION_SHORTCUT_PREFIX) }
+        if (owned.isEmpty()) return
+        val ids = owned.map { it.id }
+        // Apps cannot remove user-pinned shortcuts. Remove personal labels/avatars and
+        // their destination before disabling those entries, then clear SDK-owned caches.
+        val launcher = context.packageManager.getLaunchIntentForPackage(context.packageName)?.component
+        if (launcher != null) {
+            val sanitized = owned.filter { it.isPinned }.map { shortcut ->
+                ShortcutInfoCompat.Builder(context, shortcut.id)
+                    .setShortLabel("Conversation unavailable")
+                    .setIcon(IconCompat.createWithResource(context, config.smallIcon))
+                    .setPersons(emptyArray())
+                    .setLongLived(false)
+                    .setIntent(Intent(Intent.ACTION_MAIN).setComponent(launcher).setPackage(context.packageName))
+                    .build()
+            }
+            if (sanitized.isNotEmpty() && !ShortcutManagerCompat.updateShortcuts(context, sanitized)) {
+                diagnostic(SdkError("COMMUNICATION_SHORTCUT_CLEANUP_FAILED", "Pinned conversation metadata update was rejected; disabling the shortcut"))
+            }
+        }
+        ShortcutManagerCompat.disableShortcuts(context, ids, "Conversation no longer available")
+        ShortcutManagerCompat.removeDynamicShortcuts(context, ids)
+        ShortcutManagerCompat.removeLongLivedShortcuts(context, ids)
+    }.getOrElse {
+        diagnostic(SdkError("COMMUNICATION_SHORTCUT_CLEANUP_FAILED", "Conversation shortcuts could not be cleared"))
     }
 
     fun clear() {
@@ -171,3 +250,21 @@ internal fun communicationGroup(association: String, conversation: String): Stri
         .joinToString("") { "%02x".format(it) }
     return "notification.dev:conversation:$association:$hash"
 }
+
+internal const val COMMUNICATION_SHORTCUT_PREFIX = "dev.notification.sdk.conversation."
+
+internal fun communicationShortcutId(association: String, conversation: String): String {
+    val scoped = "${association.length}:$association$conversation"
+    val hash = MessageDigest.getInstance("SHA-256").digest(scoped.toByteArray())
+        .joinToString("") { "%02x".format(it) }
+    return COMMUNICATION_SHORTCUT_PREFIX + hash
+}
+
+internal fun isSafeConversationDestination(raw: String): Boolean = runCatching {
+    if (raw.isBlank() || raw.length > 2048 || raw.any { it.isISOControl() }) return false
+    val uri = java.net.URI(raw)
+    val scheme = uri.scheme?.lowercase() ?: return false
+    if (scheme in setOf("intent", "javascript", "data", "file", "content", "about", "blob", "tel", "sms", "mailto", "geo", "market") || uri.userInfo != null) return false
+    if (scheme in setOf("https", "http") && uri.host.isNullOrBlank()) return false
+    true
+}.getOrDefault(false)

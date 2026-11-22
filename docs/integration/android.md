@@ -273,8 +273,32 @@ Use HTTPS for production.
 
 This feature is not in the published native 0.3.1 tag. It requires a new native
 release, updated Flutter/Expo dependency pins and a new app build. Standard
-notification permissions/channels still apply. This does not provision chat
-bubbles, dynamic conversation shortcuts or a reply-composition backend.
+notification permissions/channels still apply. For Android's full conversation
+layout, configure a chat destination/deep link handled by the app's own intent
+filter. The SDK registers an association-scoped long-lived conversation shortcut
+and attaches its ID to the notification. If launcher slots are full, the SDK
+reuses only its least-recently changed dynamic slot, retaining that conversation's
+cached/long-lived and pinned state. Host-app shortcuts are never evicted; rate
+limits or host-owned capacity fall back to ordinary MessagingStyle.
+Shortcut launches open that conversation
+without a delivery payload or an `opened` analytics operation; actual notification
+taps retain the original signed delivery intent. Missing/unsafe/unhandled links,
+shortcut quota or rate limiting safely retain MessagingStyle without a shortcut.
+The SDK does not evict unrelated host-app shortcuts. Identity changes clear only
+SDK-owned shortcuts; user-pinned entries are sanitized and disabled because apps
+cannot unpin them. This does not provision chat bubbles or a reply-composition backend.
 Before enabling it, verify foreground/background/terminated cases on physical
 devices and trace the same delivery ID from the tap to API acceptance and the
 correct campaign/Journey counters. Do not infer tap acceptance from navigation.
+
+SDK-owned shortcuts use a dedicated prefix and association-scoped opaque IDs.
+Logout, identity changes and credential revocation remove their dynamic and
+cached entries through an identity-only cleanup hook. Push opt-out clears visible
+notifications while preserving same-account conversation destinations and user
+preferences. User-pinned entries cannot
+be unpinned by an app: their personal label/avatar and chat destination are
+replaced with generic app content and the entries are disabled. Unrelated
+host-app shortcuts are not changed. Shortcut launches route to the conversation
+without a delivery payload; they must not be counted as a tap on a particular
+notification. Actual notification taps retain their signed delivery-specific
+PendingIntent.
