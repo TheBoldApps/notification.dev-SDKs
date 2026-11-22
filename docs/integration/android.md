@@ -234,3 +234,47 @@ proof that an `opened` operation succeeded: check its individual result.
 Diagnostics are live events. SDK 0.2.0 has no retrospective diagnostics export;
 an installed build needs existing instrumentation or a compatible app update
 to capture new evidence. Backend deployment does not update native SDKs.
+
+## Direct-message sender avatars (unreleased)
+
+A genuine person-to-person message can include this optional metadata alongside
+its existing title/body and delivery identifiers:
+
+```json
+{
+  "communication": {
+    "sender": {
+      "id": "person-123",
+      "name": "Anna",
+      "avatarUrl": "https://example.com/anna.jpg"
+    },
+    "conversationId": "conversation-456"
+  }
+}
+```
+
+The updated native SDK uses `MessagingStyle` and `Person`, so the sender's avatar
+and name identify the incoming message. IDs/names must be nonblank and at most
+255 characters; use a stable opaque sender ID and conversation ID. The current
+recipient is inferred by the app; no recipient identity or contact permission
+needs to be supplied. Conversation grouping is scoped to the active installation
+association. Actual presentation depends on Android version and settings.
+
+Use this mode only for real direct communication, not promotional offers.
+Ordinary offers retain the `imageUrl` attachment path. In communication mode,
+Android displays the sender avatar and text rather than a separate BigPicture
+attachment. Do not combine `communication` with `imageUrl`; the sending API
+rejects that combination. The original `title` remains in the payload for fallback
+and event routing; MessagingStyle uses the sender name as its heading. The configured app/status icon and
+signed tap payload are preserved. Download failure leaves a text message with
+the sender name. Avatars use direct HTTP(S) URLs without credentials or redirects,
+JPEG/PNG/GIF, up to 2 MiB and 2048 px per side, with a five-second download budget.
+Use HTTPS for production.
+
+This feature is not in the published native 0.3.1 tag. It requires a new native
+release, updated Flutter/Expo dependency pins and a new app build. Standard
+notification permissions/channels still apply. This does not provision chat
+bubbles, dynamic conversation shortcuts or a reply-composition backend.
+Before enabling it, verify foreground/background/terminated cases on physical
+devices and trace the same delivery ID from the tap to API acceptance and the
+correct campaign/Journey counters. Do not infer tap acceptance from navigation.

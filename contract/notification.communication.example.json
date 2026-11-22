@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "deliveryId": "00000000-0000-4000-8000-000000000005",
+  "associationId": "00000000-0000-4000-8000-000000000003",
+  "expiresAt": 2000000000000,
+  "title": "Anna",
+  "body": "Your message is ready.",
+  "data": {
+    "messageId": "message-123"
+  },
+  "deepLink": "example://conversations/conversation-456/messages/message-123",
+  "communication": {
+    "sender": {
+      "id": "person-123",
+      "name": "Anna",
+      "avatarUrl": "https://example.com/anna.jpg"
+    },
+    "conversationId": "conversation-456"
+  }
+}

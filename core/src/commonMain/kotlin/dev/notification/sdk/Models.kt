@@ -86,8 +86,27 @@ data class NotificationPayload(
     @EncodeDefault(NEVER) val ios: IosNotificationOptions? = null,
     @EncodeDefault(NEVER) val android: AndroidNotificationOptions? = null,
     @EncodeDefault(NEVER) val imageUrl: String? = null,
-    @EncodeDefault(NEVER) val contentAvailable: Boolean? = null
+    @EncodeDefault(NEVER) val contentAvailable: Boolean? = null,
+    @EncodeDefault(NEVER) val communication: CommunicationNotification? = null
 )
+
+private fun String.codePointLength(): Int = indices.count { index ->
+    index == 0 || !this[index].isLowSurrogate() || !this[index - 1].isHighSurrogate()
+}
+
+@Serializable
+data class CommunicationSender(val id: String, val name: String, val avatarUrl: String? = null)
+
+@Serializable
+data class CommunicationNotification(val sender: CommunicationSender, val conversationId: String) {
+    fun isValid(): Boolean = listOf(sender.id, sender.name, conversationId).all {
+        it.isNotBlank() && it.codePointLength() <= 255
+    } && (sender.avatarUrl?.let { raw -> runCatching {
+        val url = io.ktor.http.Url(raw)
+        raw.codePointLength() <= 2048 && (raw.startsWith("https://", ignoreCase = true) || raw.startsWith("http://", ignoreCase = true)) && url.protocol.name in listOf("https", "http") &&
+            url.host.isNotBlank() && url.user == null && url.password == null
+    }.getOrDefault(false) } ?: true)
+}
 
 @Serializable(with = IosNotificationOptionsSerializer::class)
 data class IosNotificationOptions(

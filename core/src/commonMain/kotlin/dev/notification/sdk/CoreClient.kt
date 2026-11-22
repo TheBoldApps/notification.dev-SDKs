@@ -160,7 +160,16 @@ class CoreClient internal constructor(
     }
 
     fun decodeNotification(json: String): NotificationPayload? = runCatching {
-        wireJson.decodeFromString<NotificationPayload>(json).takeIf { it.title.length <= 1024 && it.body.length <= 4096 }
+        val fields = wireJson.parseToJsonElement(json).jsonObject
+        val communication = fields["communication"]?.let { value ->
+            runCatching { wireJson.decodeFromJsonElement<CommunicationNotification>(value) }.getOrNull()
+                ?.takeIf { it.isValid() }
+        }
+        // Optional presentation metadata must not discard an otherwise valid delivery.
+        val normalized = JsonObject(fields.filterKeys { it != "communication" } +
+            if (communication == null) emptyMap() else mapOf("communication" to wireJson.encodeToJsonElement(communication)))
+        wireJson.decodeFromJsonElement<NotificationPayload>(normalized)
+            .takeIf { it.title.length <= 1024 && it.body.length <= 4096 }
     }.getOrNull()
 
     suspend fun receive(payload: NotificationPayload): Boolean {

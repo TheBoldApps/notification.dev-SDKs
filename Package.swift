@@ -10,7 +10,8 @@ let package = Package(
         .library(name: "NotificationDevServiceExtension", targets: ["NotificationDevServiceExtension"]),
     ],
     targets: [
-        .target(name: "NotificationDevServiceExtension", path: "ios/Sources/NotificationDevServiceExtension"),
+        .target(name: "NotificationDevCommunication", path: "ios/Sources/NotificationDevCommunication"),
+        .target(name: "NotificationDevServiceExtension", dependencies: ["NotificationDevCommunication"], path: "ios/Sources/NotificationDevServiceExtension"),
         .target(name: "NotificationDevActivityKit", path: "ios/Sources/NotificationDevActivityKit"),
         .binaryTarget(
             name: "NotificationCore",
@@ -19,7 +20,7 @@ let package = Package(
         ),
         .target(
             name: "NotificationDev",
-            dependencies: ["NotificationCore", "NotificationDevActivityKit"],
+            dependencies: ["NotificationCore", "NotificationDevActivityKit", "NotificationDevCommunication"],
             path: "ios/Sources/NotificationDev"
         ),
         .testTarget(

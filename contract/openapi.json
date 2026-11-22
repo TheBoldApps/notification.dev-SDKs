@@ -2487,6 +2487,47 @@
             "pattern": "^https?://",
             "type": "string"
           },
+          "communication": {
+            "additionalProperties": false,
+            "description": "Genuine direct message sender metadata. Mutually exclusive with imageUrl; use sender.avatarUrl for the sender photo. Requires a compatible native SDK and iOS Communication Notifications configuration.",
+            "type": "object",
+            "properties": {
+              "sender": {
+                "additionalProperties": false,
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "name": {
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "avatarUrl": {
+                    "format": "uri",
+                    "maxLength": 2048,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ]
+              },
+              "conversationId": {
+                "minLength": 1,
+                "maxLength": 255,
+                "type": "string"
+              }
+            },
+            "required": [
+              "sender",
+              "conversationId"
+            ]
+          },
           "contentAvailable": {
             "type": "boolean"
           },

@@ -10,10 +10,11 @@ let package = Package(
         .library(name: "NotificationDevServiceExtension", targets: ["NotificationDevServiceExtension"]),
     ],
     targets: [
-        .target(name: "NotificationDevServiceExtension"),
+        .target(name: "NotificationDevServiceExtension", dependencies: ["NotificationDevCommunication"]),
+        .target(name: "NotificationDevCommunication"),
         .target(name: "NotificationDevActivityKit"),
         .binaryTarget(name: "NotificationCore", path: "Artifacts/NotificationCore.xcframework"),
-        .target(name: "NotificationDev", dependencies: ["NotificationCore", "NotificationDevActivityKit"]),
+        .target(name: "NotificationDev", dependencies: ["NotificationCore", "NotificationDevActivityKit", "NotificationDevCommunication"]),
         .testTarget(name: "NotificationDevTests", dependencies: ["NotificationDev", "NotificationDevServiceExtension"]),
     ]
 )

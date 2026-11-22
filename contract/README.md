@@ -1,6 +1,6 @@
 # SDK HTTP contract
 
-[openapi.json](openapi.json) is the SDK-only snapshot exported from the backend. It contains native SDK operations, their referenced schemas, and the push envelope delivered outside HTTP. Fixtures: [state](state.example.json), [notification](notification.example.json), and [advanced notification](notification.advanced.example.json).
+[openapi.json](openapi.json) is the SDK-only snapshot exported from the backend. It contains native SDK operations, their referenced schemas, and the push envelope delivered outside HTTP. Fixtures: [state](state.example.json), [notification](notification.example.json), and [advanced notification](notification.advanced.example.json), and [person-message notification](notification.communication.example.json).
 
 ## Protocol
 
@@ -14,6 +14,14 @@
 FCM uses a data-only message: `data.notification_dev` is the serialized notification fixture. Do not include an FCM `notification` block.
 
 APNs uses `aps.alert` plus a `notification_dev` JSON object. Background alerts can appear before SDK validation; receipt reporting covers SDK-observed messages.
+
+The optional `communication` object supplies the sender's opaque ID, display name,
+optional avatar URL, and a stable conversation ID for genuine one-to-one messages.
+It is independent of the delivery/association identifiers used for receipt and tap
+attribution. Communication notifications use the sender avatar rather than an
+`imageUrl` attachment; promotional offers should use ordinary notification images.
+The corresponding native SDK release, app capabilities/configuration and rebuilt
+app are required before enabling this new presentation.
 
 ## API generation
 

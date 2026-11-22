@@ -192,7 +192,12 @@ class NotificationPayload {
           ? null
           : AndroidNotificationOptions.fromJson(json['android'] as JsonMap),
       imageUrl = json['imageUrl'] as String?,
-      contentAvailable = json['contentAvailable'] as bool?;
+      contentAvailable = json['contentAvailable'] as bool?,
+      communication = json['communication'] == null
+          ? null
+          : CommunicationNotification.fromJson(
+              json['communication'] as JsonMap,
+            );
 
   final int version;
   final String deliveryId;
@@ -210,6 +215,25 @@ class NotificationPayload {
   final AndroidNotificationOptions? android;
   final String? imageUrl;
   final bool? contentAvailable;
+  final CommunicationNotification? communication;
+}
+
+class CommunicationSender {
+  CommunicationSender.fromJson(JsonMap json)
+    : id = json['id'] as String,
+      name = json['name'] as String,
+      avatarUrl = json['avatarUrl'] as String?;
+  final String id;
+  final String name;
+  final String? avatarUrl;
+}
+
+class CommunicationNotification {
+  CommunicationNotification.fromJson(JsonMap json)
+    : sender = CommunicationSender.fromJson(json['sender'] as JsonMap),
+      conversationId = json['conversationId'] as String;
+  final CommunicationSender sender;
+  final String conversationId;
 }
 
 class NotificationEvent {

@@ -13,6 +13,8 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import androidx.core.app.Person
+import androidx.core.graphics.drawable.IconCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -65,7 +67,7 @@ internal class NotificationPresenter(
         )
     }
 
-    fun display(payload: NotificationPayload, image: Bitmap? = null) {
+    fun display(payload: NotificationPayload, image: Bitmap? = null, avatar: Bitmap? = null) {
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS
@@ -102,7 +104,20 @@ internal class NotificationPresenter(
             .setTimeoutAfter((payload.expiresAt - System.currentTimeMillis()).coerceAtLeast(1))
             .setContentIntent(pending).setOnlyAlertOnce(true)
         payload.android?.groupKey?.let { builder.setGroup(it) }
-        if (image != null) {
+        val communication = payload.communication?.takeIf { it.isValid() }
+        if (communication != null) {
+            val sender = Person.Builder().setKey(communication.sender.id)
+                .setName(communication.sender.name)
+                .apply { if (avatar != null) setIcon(IconCompat.createWithBitmap(avatar)) }.build()
+            builder.setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                .addPerson(sender)
+                .setStyle(NotificationCompat.MessagingStyle(Person.Builder().setName("You").build())
+                    .setGroupConversation(false)
+                    .addMessage(payload.body, System.currentTimeMillis(), sender))
+            if (payload.android?.groupKey == null) {
+                builder.setGroup(communicationGroup(payload.associationId, communication.conversationId))
+            }
+        } else if (image != null) {
             builder.setLargeIcon(image)
                 .setStyle(NotificationCompat.BigPictureStyle().bigPicture(image)
                     .bigLargeIcon(null as Bitmap?).setSummaryText(payload.body))
@@ -149,4 +164,10 @@ class NotificationMessagingService : FirebaseMessagingService() {
 
         runBlocking(Dispatchers.IO) { NotificationDev.handleRemoteMessage(message) }
     }
+}
+
+internal fun communicationGroup(association: String, conversation: String): String {
+    val hash = MessageDigest.getInstance("SHA-256").digest(conversation.toByteArray())
+        .joinToString("") { "%02x".format(it) }
+    return "notification.dev:conversation:$association:$hash"
 }

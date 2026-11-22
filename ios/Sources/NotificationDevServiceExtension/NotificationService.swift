@@ -1,10 +1,13 @@
 import Foundation
 import ImageIO
+import NotificationDevCommunication
 import UserNotifications
 
 /// Link only this product in a Notification Service Extension target.
 /// Other providers can be handled by overriding didReceive and forwarding unowned requests.
 open class NotificationService: UNNotificationServiceExtension, URLSessionDataDelegate, @unchecked Sendable {
+    private var enrichment: CommunicationEnrichment?
+    private var generation = 0
     private let configuration: URLSessionConfiguration
     private let lock = NSLock()
     private var handler: ((UNNotificationContent) -> Void)?
@@ -32,17 +35,20 @@ open class NotificationService: UNNotificationServiceExtension, URLSessionDataDe
         _ request: UNNotificationRequest,
         withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void
     ) {
-        finish()
+        cancelPending()
         guard Self.owns(request),
             let envelope = request.content.userInfo["notification_dev"] as? [String: Any],
-            let raw = envelope["imageUrl"] as? String,
-            let url = URL(string: raw), ["https", "http"].contains(url.scheme?.lowercased() ?? ""),
-            url.user == nil, url.password == nil,
             let copy = request.content.mutableCopy() as? UNMutableNotificationContent
         else {
             contentHandler(request.content)
             return
         }
+        lock.lock()
+        handler = contentHandler
+        content = copy
+        lock.unlock()
+        guard let raw = envelope["imageUrl"] as? String,
+              let url = ImageDownload.url(raw) else { finish(); return }
         let configuration = self.configuration
         configuration.timeoutIntervalForRequest = 5
         configuration.timeoutIntervalForResource = 5
@@ -59,7 +65,13 @@ open class NotificationService: UNNotificationServiceExtension, URLSessionDataDe
         connection.dataTask(with: url).resume()
     }
 
-    open override func serviceExtensionTimeWillExpire() { finish() }
+    open override func serviceExtensionTimeWillExpire() { cancelPending() }
+
+    private func cancelPending() {
+        lock.lock(); generation += 1; let pending = enrichment; enrichment = nil; lock.unlock()
+        pending?.cancel()
+        finish(allowCommunication: false)
+    }
 
     public func urlSession(
         _ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
@@ -102,10 +114,11 @@ open class NotificationService: UNNotificationServiceExtension, URLSessionDataDe
         finish(session: session, attachImage: error == nil)
     }
 
-    private func finish(session expectedSession: URLSession? = nil, attachImage: Bool = false) {
+    private func finish(session expectedSession: URLSession? = nil, attachImage: Bool = false, allowCommunication: Bool = true) {
         lock.lock()
         guard expectedSession == nil || session === expectedSession,
             let handler, let content else { lock.unlock(); return }
+        let token = generation
         let data = bytes
         let suffix = fileExtension
         let connection = session
@@ -137,6 +150,12 @@ open class NotificationService: UNNotificationServiceExtension, URLSessionDataDe
                 // Optional image failure preserves the original alert and userInfo.
             }
         }
-        handler(content)
+        if !allowCommunication { handler(content); return }
+        let operation = CommunicationEnrichment(content: content, configuration: configuration, completion: handler)
+        lock.lock()
+        let active = generation == token
+        if active { enrichment = operation }
+        lock.unlock()
+        if active { operation.start() } else { operation.cancel() }
     }
 }

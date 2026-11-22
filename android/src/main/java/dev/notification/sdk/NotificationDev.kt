@@ -160,13 +160,18 @@ object NotificationDev {
 
         if (c.engine.receive(payload)) {
             if (shouldDisplay(c, payload)) {
-                val image = loadNotificationImage(payload.imageUrl)
+                val communication = payload.communication?.takeIf { it.isValid() }
+                // Each mode downloads at most one bitmap within the existing five-second budget.
+                val url = if (communication == null) payload.imageUrl else communication.sender.avatarUrl
+                val bitmap = loadNotificationImage(url, allowRedirects = communication == null)
+                val image = if (communication == null) bitmap else null
+                val avatar = if (communication != null) bitmap else null
                 try {
                     if (shouldDisplay(c, payload)) {
-                        c.engine.displayIfEligible(payload) { c.presenter.display(payload, image) }
+                        c.engine.displayIfEligible(payload) { c.presenter.display(payload, image, avatar) }
                     }
                 } finally {
-                    image?.recycle()
+                    bitmap?.recycle()
                 }
             }
         }
