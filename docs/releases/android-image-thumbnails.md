@@ -2,7 +2,10 @@
 
 The unreleased presenter fix uses the same `imageUrl` bitmap as a compact
 large-icon thumbnail and an expanded picture. Use it for a person's photo or a
-small seasonal asset. It does not replace the configured monochrome app/status
+small seasonal asset. The expanded style hides the compact large icon so the
+image is not duplicated above the large picture, following the
+[Android notification guide](https://developer.android.com/develop/ui/compose/notifications/expanded).
+It does not replace the configured monochrome app/status
 icon, and does not enable Android MessagingStyle or iOS Communication
 Notifications sender avatars.
 

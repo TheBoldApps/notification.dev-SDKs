@@ -104,7 +104,8 @@ internal class NotificationPresenter(
         payload.android?.groupKey?.let { builder.setGroup(it) }
         if (image != null) {
             builder.setLargeIcon(image)
-                .setStyle(NotificationCompat.BigPictureStyle().bigPicture(image).setSummaryText(payload.body))
+                .setStyle(NotificationCompat.BigPictureStyle().bigPicture(image)
+                    .bigLargeIcon(null as Bitmap?).setSummaryText(payload.body))
         }
         val manager = NotificationManagerCompat.from(context)
         manager.notify(notificationTag(payload), 0, builder.build())
