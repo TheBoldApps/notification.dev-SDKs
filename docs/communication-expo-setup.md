@@ -12,6 +12,7 @@ The server message adds:
 {
   "title": "Anna",
   "body": "Your new message",
+  "deepLink": "your-app://chat/conversation-opaque-id",
   "communication": {
     "sender": {
       "id": "sender-opaque-id",
@@ -52,7 +53,12 @@ Launch the rebuilt app once and wait for SDK identity synchronization before
 testing; until the host publishes a stable association, extension presentation
 fails safely to the ordinary alert.
 
-Android uses native MessagingStyle and sender Person metadata. The host's own
+Android uses native MessagingStyle and sender Person metadata. Full system
+conversation presentation requires a valid chat deep link handled by this app;
+the SDK registers an association-scoped long-lived shortcut for that destination.
+Missing routes, OS quotas or unavailable shortcut registration use safe messaging
+fallback. Shortcut launches carry no notification-delivery extras and do not
+create false notification-open events. The host's own
 small/status icon stays configured normally. Both platforms require a fresh
 native build and physical-device verification in foreground, background and
 terminated states. For each case trace the same fresh delivery ID through the
