@@ -30,4 +30,13 @@ class CommunicationGroupTest {
             assertFalse(url, isSafeConversationDestination(url))
         }
     }
+    @Test fun personKeysKeepCommonSenderIdsScopedToTheirAssociation() {
+        val first = communicationPersonKey("account-a", "1")
+        assertEquals(first, communicationPersonKey("account-a", "1"))
+        assertNotEquals(first, communicationPersonKey("account-b", "1"))
+        assertNotEquals(first, communicationPersonKey("account-a", "2"))
+        assertNotEquals(first, communicationShortcutId("account-a", "1"))
+        assertEquals("dev.notification.sdk.person.".length + 64, first.length)
+        assertFalse(first.contains("account-a"))
+    }
 }

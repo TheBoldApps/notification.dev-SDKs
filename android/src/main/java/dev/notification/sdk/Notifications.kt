@@ -108,7 +108,7 @@ internal class NotificationPresenter(
         payload.android?.groupKey?.let { builder.setGroup(it) }
         val communication = payload.communication?.takeIf { it.isValid() }
         if (communication != null) {
-            val sender = Person.Builder().setKey(communication.sender.id)
+            val sender = Person.Builder().setKey(communicationPersonKey(payload.associationId, communication.sender.id))
                 .setName(communication.sender.name)
                 .apply { if (avatar != null) setIcon(IconCompat.createWithBitmap(avatar)) }.build()
             conversationShortcut(payload, communication, sender, avatar)?.let { shortcutId ->
@@ -259,6 +259,10 @@ internal fun communicationShortcutId(association: String, conversation: String):
         .joinToString("") { "%02x".format(it) }
     return COMMUNICATION_SHORTCUT_PREFIX + hash
 }
+
+internal fun communicationPersonKey(association: String, sender: String): String =
+    "dev.notification.sdk.person." + communicationShortcutId(association, sender)
+        .removePrefix(COMMUNICATION_SHORTCUT_PREFIX)
 
 internal fun isSafeConversationDestination(raw: String): Boolean = runCatching {
     if (raw.isBlank() || raw.length > 2048 || raw.any { it.isISOControl() }) return false
