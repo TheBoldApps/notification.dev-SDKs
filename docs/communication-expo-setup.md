@@ -2,7 +2,7 @@
 
 A communication notification represents a genuine incoming message from a person.
 Use ordinary image attachments for offers and campaigns. Avatar support is native
-code that requires `@notification.dev/expo` 0.4.0 or later and a new native
+code that requires `@notification.dev/expo` 0.4.1 or later and a new native
 build; it cannot be delivered through a dashboard change or OTA update.
 
 The server message adds:

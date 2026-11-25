@@ -1,8 +1,8 @@
 # Expo SDK
 
 TypeScript API over the **released** notification.dev native SDKs. Android uses
-`dev.notification:android-sdk:0.4.0` from Maven Central. iOS uses the remote
-`NotificationDev` Swift package at exact version `0.4.0`, including its
+`dev.notification:android-sdk:0.4.1` from Maven Central. iOS uses the remote
+`NotificationDev` Swift package at exact version `0.4.1`, including its
 checksum-verified Kotlin core XCFramework. The npm package contains bridge and
 configuration code only, with no native SDK sources or binaries.
 
@@ -204,8 +204,8 @@ npm pack
 ```
 
 The Ruby check requires the `xcodeproj` gem. `npm pack` runs the TypeScript build
-through `prepack`. For version `0.4.0`, it produces
-`notification.dev-expo-0.4.0.tgz`. Check that the tarball contains the compiled
+through `prepack`. For version `0.4.1`, it produces
+`notification.dev-expo-0.4.1.tgz`. Check that the tarball contains the compiled
 JavaScript/types, bridge sources, config plugin, module configuration, and
 documentation/licenses, without credentials, generated native projects, or
 native SDK binaries.
@@ -221,8 +221,8 @@ Authenticate and publish the same tarball you tested:
 ```sh
 npm login --registry=https://registry.npmjs.org/
 npm whoami --registry=https://registry.npmjs.org/
-npm publish ./notification.dev-expo-0.4.0.tgz --access public --tag latest --registry=https://registry.npmjs.org/
-npm view @notification.dev/expo@0.4.0 version dist.integrity --registry=https://registry.npmjs.org/
+npm publish ./notification.dev-expo-0.4.1.tgz --access public --tag latest --registry=https://registry.npmjs.org/
+npm view @notification.dev/expo@0.4.1 version dist.integrity --registry=https://registry.npmjs.org/
 npm view @notification.dev/expo dist-tags --registry=https://registry.npmjs.org/
 ```
 
@@ -233,7 +233,7 @@ For future releases, update the package version and substitute the new version
 in the tarball name and verification commands. Confirm native dependency pins
 still reference available, compatible releases.
 
-Finally, run `npx expo install @notification.dev/expo@0.4.0` in a clean Expo 58
+Finally, run `npx expo install @notification.dev/expo@0.4.1` in a clean Expo 58
 app and repeat native builds to verify installation from the registry.
 
 Copyright 2026 The Bold Apps, LLC. Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE).

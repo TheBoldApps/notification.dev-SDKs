@@ -20,7 +20,7 @@ Pod::Spec.new do |s|
   if defined?(spm_dependency)
     spm_dependency(s,
       url: ENV.fetch('NOTIFICATION_DEV_SWIFT_PACKAGE_PATH', 'https://github.com/TheBoldApps/notification.dev-SDKs.git'),
-      requirement: { kind: 'exactVersion', version: '0.4.0' },
+      requirement: { kind: 'exactVersion', version: '0.4.1' },
       products: ['NotificationDev'])
   end
 end

@@ -2,7 +2,7 @@
 
 Use `communication` only for genuine incoming person-to-person messages. Ordinary
 promotions and seasonal offers use `imageUrl` attachments. Available from
-native SDK 0.4.0 and Flutter/Expo wrappers 0.4.0. Customer apps must be rebuilt
+native SDK 0.4.1 and Flutter/Expo wrappers 0.4.1. Customer apps must be rebuilt
 with these versions and the native setup below.
 
 Payload:

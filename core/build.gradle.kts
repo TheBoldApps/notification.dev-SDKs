@@ -77,7 +77,7 @@ kotlin {
 }
 
 mavenPublishing {
-    coordinates("dev.notification", "sdk-core", "0.4.0")
+    coordinates("dev.notification", "sdk-core", "0.4.1")
 }
 
 // AGP derives baseline-profile directories from Kotlin source roots.

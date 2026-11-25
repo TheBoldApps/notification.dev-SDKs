@@ -2,7 +2,7 @@
 
 ## Android / Maven Central
 
-The Android SDK is configured to publish as `dev.notification:android-sdk:0.4.0`. Publish
+The Android SDK is configured to publish as `dev.notification:android-sdk:0.4.1`. Publish
 the shared core in the same release: `sdk-core`, `sdk-core-android`,
 `sdk-core-iosarm64`, and `sdk-core-iossimulatorarm64`, all under `dev.notification`.
 Gradle metadata selects the appropriate core platform for consumers.
@@ -41,7 +41,7 @@ After checks pass and the release is ready for upload:
 In [Central Portal deployments](https://central.sonatype.com/publishing/deployments),
 wait for validation, review the artifacts, and click **Publish**. Automatic release
 is not enabled by the committed configuration. Test a clean consumer with only
-`google()` and `mavenCentral()` and `dev.notification:android-sdk:0.4.0` after
+`google()` and `mavenCentral()` and `dev.notification:android-sdk:0.4.1` after
 the artifacts become available. Use a new version for changes to a published release.
 
 ## iOS releases

@@ -90,10 +90,6 @@ data class NotificationPayload(
     @EncodeDefault(NEVER) val communication: CommunicationNotification? = null
 )
 
-private fun String.codePointLength(): Int = indices.count { index ->
-    index == 0 || !this[index].isLowSurrogate() || !this[index - 1].isHighSurrogate()
-}
-
 @Serializable
 data class CommunicationSender(val id: String, val name: String, val avatarUrl: String? = null)
 
@@ -106,6 +102,12 @@ data class CommunicationNotification(val sender: CommunicationSender, val conver
         raw.codePointLength() <= 2048 && (raw.startsWith("https://", ignoreCase = true) || raw.startsWith("http://", ignoreCase = true)) && url.protocol.name in listOf("https", "http") &&
             url.host.isNotBlank() && url.user == null && url.password == null
     }.getOrDefault(false) } ?: true)
+
+    // Member, not top-level: a top-level declaration here would emit dev.notification.sdk.ModelsKt,
+    // which collides with the Android SDK's own ModelsKt in consumer apps.
+    private fun String.codePointLength(): Int = indices.count { index ->
+        index == 0 || !this[index].isLowSurrogate() || !this[index - 1].isHighSurrogate()
+    }
 }
 
 @Serializable(with = IosNotificationOptionsSerializer::class)

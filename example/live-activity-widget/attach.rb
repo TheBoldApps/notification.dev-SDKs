@@ -19,7 +19,7 @@ else
   package = project.root_object.package_references.find { |reference| reference.isa == 'XCRemoteSwiftPackageReference' && reference.repositoryURL == url }
   package ||= project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
   package.repositoryURL = url
-  package.requirement = { 'kind' => 'exactVersion', 'version' => '0.4.0' }
+  package.requirement = { 'kind' => 'exactVersion', 'version' => '0.4.1' }
 end
 project.root_object.package_references << package unless project.root_object.package_references.include?(package)
 existing = project.targets.find { |target| target.name == name }

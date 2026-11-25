@@ -1,6 +1,6 @@
 # iOS SDK integration
 
-This guide targets SDK release `0.4.0`. Inspect the app's existing notification
+This guide targets SDK release `0.4.1`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard or use the `push-provider-setup` skill with MCP
@@ -15,13 +15,13 @@ Swift API for iOS 15+, using direct APNs. Installing a published release require
 ## Install with Swift Package Manager
 
 In Xcode, choose **File > Add Package Dependencies**, enter
-`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.4.0`,
+`https://github.com/TheBoldApps/notification.dev-SDKs`, select version `0.4.1`,
 and add the `NotificationDev` product to your app target.
 
 For another Swift package, declare:
 
 ```swift
-.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.4.0")
+.package(url: "https://github.com/TheBoldApps/notification.dev-SDKs", exact: "0.4.1")
 ```
 
 Add `.product(name: "NotificationDev", package: "notification.dev-SDKs")` to
@@ -336,8 +336,8 @@ in the host, enable the same App Group entitlement and
 `NotificationDevCommunicationAppGroup` Info.plist value in the host and NSE,
 embed the SDK Notification Service Extension, and use the SDK's
 notification delegate forwarder for foreground delivery. App signing/capabilities
-and a native rebuild are required. Requires native SDK 0.4.0 or later
-(Flutter/Expo wrappers 0.4.0).
+and a native rebuild are required. Requires native SDK 0.4.1 or later
+(Flutter/Expo wrappers 0.4.1).
 
 See the [release and native setup gate](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/releases/communication-notifications.md)
 for account scoping, fallback behavior and end-to-end attribution checks. Do not

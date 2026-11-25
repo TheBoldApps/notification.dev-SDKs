@@ -1,6 +1,6 @@
 # Android SDK integration
 
-This guide targets SDK release `0.4.0`. Inspect the app's existing notification
+This guide targets SDK release `0.4.1`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard or use the `push-provider-setup` skill with MCP
@@ -19,7 +19,7 @@ then add to the app module:
 
 ```kotlin
 dependencies {
-    implementation("dev.notification:android-sdk:0.4.0")
+    implementation("dev.notification:android-sdk:0.4.1")
 }
 ```
 
@@ -271,7 +271,7 @@ the sender name. Avatars use direct HTTP(S) URLs without credentials or redirect
 JPEG/PNG/GIF, up to 2 MiB and 2048 px per side, with a five-second download budget.
 Use HTTPS for production.
 
-This feature requires native SDK 0.4.0 or later (Flutter/Expo wrappers 0.4.0)
+This feature requires native SDK 0.4.1 or later (Flutter/Expo wrappers 0.4.1)
 and a new app build. Standard
 notification permissions/channels still apply. For Android's full conversation
 layout, configure a chat destination/deep link handled by the app's own intent

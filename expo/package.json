@@ -1,6 +1,6 @@
 {
   "name": "@notification.dev/expo",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Expo bridge for the native notification.dev SDKs",
   "main": "build/index.js",
   "types": "build/index.d.ts",
