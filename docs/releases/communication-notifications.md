@@ -1,10 +1,9 @@
-# Communication sender avatars (unreleased)
+# Communication sender avatars
 
 Use `communication` only for genuine incoming person-to-person messages. Ordinary
-promotions and seasonal offers use `imageUrl` attachments. This feature is not
-present in the immutable native 0.3.1 release or existing public wrappers.
-Publish new native artifacts and compatible wrappers, verify clean remote-only
-consumers, then rebuild customer applications before calling it available.
+promotions and seasonal offers use `imageUrl` attachments. Available from
+native SDK 0.4.0 and Flutter/Expo wrappers 0.4.0. Customer apps must be rebuilt
+with these versions and the native setup below.
 
 Payload:
 

@@ -22,7 +22,7 @@ then add to the app module:
 
 ```kotlin
 dependencies {
-    implementation("dev.notification:android-sdk:0.3.1")
+    implementation("dev.notification:android-sdk:0.4.0")
 }
 ```
 
@@ -140,8 +140,6 @@ remains the app's notification/status-bar icon. If the optional download fails,
 the original text and tap handling remain available. Device and Android settings
 control the final layout.
 
-This compact-thumbnail fix is unreleased and is not included in the immutable
-native `0.3.1` tag. Publish it under a new native version and update Flutter/Expo
-Android dependency pins before recommending an upgrade. Existing SDKs may show
-`imageUrl` only in the expanded notification. Test on physical devices; JVM tests
+Compact thumbnails require native SDK 0.4.0 or later (Flutter/Expo wrappers
+0.4.0). Older SDKs may show `imageUrl` only in the expanded notification. Test on physical devices; JVM tests
 do not validate Android's rendered notification layout.

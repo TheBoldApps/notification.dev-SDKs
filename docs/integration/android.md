@@ -1,6 +1,6 @@
 # Android SDK integration
 
-This guide targets SDK release `0.3.1`. Inspect the app's existing notification
+This guide targets SDK release `0.4.0`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard or use the `push-provider-setup` skill with MCP
@@ -19,7 +19,7 @@ then add to the app module:
 
 ```kotlin
 dependencies {
-    implementation("dev.notification:android-sdk:0.3.1")
+    implementation("dev.notification:android-sdk:0.4.0")
 }
 ```
 
@@ -235,7 +235,7 @@ Diagnostics are live events. SDK 0.2.0 has no retrospective diagnostics export;
 an installed build needs existing instrumentation or a compatible app update
 to capture new evidence. Backend deployment does not update native SDKs.
 
-## Direct-message sender avatars (unreleased)
+## Direct-message sender avatars
 
 A genuine person-to-person message can include this optional metadata alongside
 its existing title/body and delivery identifiers:
@@ -271,8 +271,8 @@ the sender name. Avatars use direct HTTP(S) URLs without credentials or redirect
 JPEG/PNG/GIF, up to 2 MiB and 2048 px per side, with a five-second download budget.
 Use HTTPS for production.
 
-This feature is not in the published native 0.3.1 tag. It requires a new native
-release, updated Flutter/Expo dependency pins and a new app build. Standard
+This feature requires native SDK 0.4.0 or later (Flutter/Expo wrappers 0.4.0)
+and a new app build. Standard
 notification permissions/channels still apply. For Android's full conversation
 layout, configure a chat destination/deep link handled by the app's own intent
 filter. The SDK registers an association-scoped long-lived conversation shortcut

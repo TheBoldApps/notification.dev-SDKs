@@ -1,6 +1,6 @@
 # Android image thumbnail release gate
 
-The unreleased presenter fix uses the same `imageUrl` bitmap as a compact
+The presenter change, released in native SDK 0.4.0, uses the same `imageUrl` bitmap as a compact
 large-icon thumbnail and an expanded picture. Use it for a person's photo or a
 small seasonal asset. The expanded style hides the compact large icon so the
 image is not duplicated above the large picture, following the
@@ -9,11 +9,8 @@ It does not replace the configured monochrome app/status
 icon, and does not enable Android MessagingStyle or iOS Communication
 Notifications sender avatars.
 
-Do not replace the published native 0.3.1 tag or publish different binaries under
-that version. Release this change under a new native patch version, align the
-Flutter/Expo Android pins, and verify clean consumers using only public remote
-dependencies. Keep the existing coordinated 0.3.1 notification-open reliability
-release independent if its publication is already underway.
+Released in native SDK 0.4.0 with aligned Flutter/Expo 0.4.0 wrappers. Never
+replace a published tag or binary; release corrections under a new version.
 
 Before announcing customer readiness:
 

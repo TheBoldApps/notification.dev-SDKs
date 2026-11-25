@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Update native Android and Swift dependencies to 0.4.0.
+- Show `imageUrl` images as compact Android notification thumbnails.
+- Add genuine sender-avatar communication notifications (Android MessagingStyle, iOS Communication Notifications).
+- Add typed `communication` sender/conversation metadata.
+
 ## 0.3.1
 
 - Align the example and host/widget Swift package pins with native 0.3.1.

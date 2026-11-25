@@ -1,6 +1,6 @@
 # Flutter SDK integration
 
-This guide targets SDK release `0.3.1`. Inspect the app's existing notification
+This guide targets SDK release `0.4.0`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard or use the `push-provider-setup` skill with MCP
@@ -16,7 +16,7 @@ Android/iOS plugin over the native SDKs. Requires Flutter 3.44+, Dart 3.12+, JDK
 
 ```yaml
 dependencies:
-  notification_dev: ^0.3.1
+  notification_dev: ^0.4.0
 ```
 
 Run `flutter pub get`. Android downloads the native SDK from Maven Central; iOS downloads the released Swift package from GitHub. No native SDK checkout or local Gradle composite build is required.
