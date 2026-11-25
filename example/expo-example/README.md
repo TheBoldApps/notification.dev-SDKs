@@ -39,8 +39,8 @@ can be inspected.
 Run `npx expo prebuild --no-install`, then `pod install` from `ios/`. Build the
 generated workspace for an ARM64 simulator and iPhone destination. Inspect the
 app and Pods project package references: both must reference the remote
-`NotificationDev` package at `0.3.0`. Android dependency inspection must resolve
-`dev.notification:android-sdk:0.3.0` from Maven Central.
+`NotificationDev` package at `0.3.1`. Android dependency inspection must resolve
+`dev.notification:android-sdk:0.3.1` from Maven Central.
 
 For publication checks, run `npm pack` in `../../expo`, install the tarball in a
 separate clean Expo app, and repeat native builds. The tarball must contain only
@@ -71,7 +71,7 @@ account sequencing and its remote rollout flag. The switch verifies
 `pushTokenRegistered`, pending changes and identity before opting out of OneSignal.
 See [advanced integration](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md).
 
-The local npm bridge uses released native SDK `0.3.0` artifacts by default.
+The local npm bridge uses released native SDK `0.3.1` artifacts by default.
 Use local native overrides only when developing native SDK changes.
 
 ## Live Activities

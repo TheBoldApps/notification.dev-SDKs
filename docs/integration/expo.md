@@ -1,6 +1,6 @@
 # Expo SDK integration
 
-This guide targets SDK release `0.3.0`. Inspect the app's existing notification
+This guide targets SDK release `0.3.1`. Inspect the app's existing notification
 integration before changing startup or callback ownership. Use the public project
 UUID from the dashboard, never a server API key. Configure matching FCM/APNs
 providers in the dashboard or use the `push-provider-setup` skill with MCP
@@ -11,8 +11,8 @@ Canonical source: [this guide](https://github.com/TheBoldApps/notification.dev-S
 The [platform README](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/expo/README.md) covers released installation and usage.
 
 TypeScript API over the **released** notification.dev native SDKs. Android uses
-`dev.notification:android-sdk:0.3.0` from Maven Central. iOS uses the remote
-`NotificationDev` Swift package at exact version `0.3.0`, including its
+`dev.notification:android-sdk:0.3.1` from Maven Central. iOS uses the remote
+`NotificationDev` Swift package at exact version `0.3.1`, including its
 checksum-verified Kotlin core XCFramework. The npm package contains bridge and
 configuration code only, with no native SDK sources or binaries.
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- Align the example and host/widget Swift package pins with native 0.3.1.
+
+- Use native SDK 0.3.1 notification-open queue prioritization and diagnostic codes.
+- Diagnose replaced iOS notification delegates.
+
 ## 0.3.0
 
 - Update native Android and Swift dependencies to 0.3.0.
