@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.1 (unreleased)
+## 0.3.1
 
 - Use native SDK 0.3.1 notification-open queue prioritization and diagnostic codes.
 - Diagnose replaced iOS notification delegates.

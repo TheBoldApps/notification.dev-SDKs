@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.1 (unreleased)
+## 0.3.1
 
 - Align the example and host/widget Swift package pins with native 0.3.1.
 
