@@ -102,7 +102,11 @@ internal class NotificationPresenter(
             .setTimeoutAfter((payload.expiresAt - System.currentTimeMillis()).coerceAtLeast(1))
             .setContentIntent(pending).setOnlyAlertOnce(true)
         payload.android?.groupKey?.let { builder.setGroup(it) }
-        if (image != null) builder.setStyle(NotificationCompat.BigPictureStyle().bigPicture(image).setSummaryText(payload.body))
+        if (image != null) {
+            builder.setLargeIcon(image)
+                .setStyle(NotificationCompat.BigPictureStyle().bigPicture(image)
+                    .bigLargeIcon(null as Bitmap?).setSummaryText(payload.body))
+        }
         val manager = NotificationManagerCompat.from(context)
         manager.notify(notificationTag(payload), 0, builder.build())
         val group = payload.android?.groupKey

@@ -130,3 +130,18 @@ service and its separate backend are not covered by this license.
 ## Advanced push
 
 See the [advanced integration guide](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/advanced-push.md) for platform options, app/environment routing, foreground suppression, images, credential revocation, and provider coexistence.
+
+### Small image thumbnails
+
+`imageUrl` accepts a person's photo or a campaign asset. The updated Android
+presenter supplies it as the notification's large-icon thumbnail in the compact
+view and retains the large image when expanded. The configured `smallIcon`
+remains the app's notification/status-bar icon. If the optional download fails,
+the original text and tap handling remain available. Device and Android settings
+control the final layout.
+
+This compact-thumbnail fix is unreleased and is not included in the immutable
+native `0.3.1` tag. Publish it under a new native version and update Flutter/Expo
+Android dependency pins before recommending an upgrade. Existing SDKs may show
+`imageUrl` only in the expanded notification. Test on physical devices; JVM tests
+do not validate Android's rendered notification layout.
