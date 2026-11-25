@@ -25,7 +25,7 @@ internal fun readImageBytes(input: InputStream, deadline: Long): ByteArray {
     }
 }
 
-internal suspend fun loadNotificationImage(raw: String?): Bitmap? = withContext(Dispatchers.IO) {
+internal suspend fun loadNotificationImage(raw: String?, allowRedirects: Boolean = true): Bitmap? = withContext(Dispatchers.IO) {
     if (raw == null) return@withContext null
     try {
         var url = URL(raw)
@@ -43,8 +43,16 @@ internal suspend fun loadNotificationImage(raw: String?): Bitmap? = withContext(
                 connection.instanceFollowRedirects = false
                 val status = connection.responseCode
                 if (status in 300..399) {
+                    check(allowRedirects) { "Avatar redirects are not supported" }
                     url = URL(url, requireNotNull(connection.getHeaderField("Location")))
                 } else {
+                    if (!allowRedirects) {
+                        check(connection.contentType?.substringBefore(';')?.lowercase() in
+                            listOf("image/jpeg", "image/png", "image/gif"))
+                    }
+                    if (!allowRedirects) {
+                        check(connection.contentType?.substringBefore(';')?.lowercase() in listOf("image/jpeg", "image/png", "image/gif"))
+                    }
                     val length = connection.getHeaderField("Content-Length")?.toLongOrNull()
                     check(status in 200..299 && (length == null || length <= MAX_IMAGE_BYTES))
                     bytes = connection.inputStream.use { readImageBytes(it, deadline) }
@@ -57,6 +65,7 @@ internal suspend fun loadNotificationImage(raw: String?): Bitmap? = withContext(
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(data, 0, data.size, bounds)
         check(bounds.outWidth > 0 && bounds.outHeight > 0)
+        if (!allowRedirects) check(bounds.outWidth <= 2048 && bounds.outHeight <= 2048)
         val options = BitmapFactory.Options().apply { inSampleSize = 1 }
         while (bounds.outWidth / options.inSampleSize > 2048 || bounds.outHeight / options.inSampleSize > 2048) {
             options.inSampleSize *= 2

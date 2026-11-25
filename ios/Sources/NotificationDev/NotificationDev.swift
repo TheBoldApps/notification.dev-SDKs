@@ -1,4 +1,5 @@
 import Foundation
+import NotificationDevCommunication
 import NotificationCore
 import UIKit
 import UserNotifications
@@ -25,6 +26,8 @@ public final class NotificationDev {
     public private(set) var config: SdkConfig
     private var bridge: IosBridge!
     private var initialization: Task<Void, Error>?
+    private var communicationIdentityTransition = false
+    private var communicationScopeTask: Task<Void, Never>?
     private var timer: Task<Void, Never>?
     private var syncTask: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
@@ -39,6 +42,7 @@ public final class NotificationDev {
         guard shared == nil else {
             throw SdkError(code: "ALREADY_INITIALIZED", message: "Restart the app before resetting an active SDK client")
         }
+        CommunicationAssociationScope.publish(nil)
         try SecureStorage.reset()
         clearDeliveredNotifications()
     }
@@ -67,12 +71,14 @@ public final class NotificationDev {
         guard !config.projectId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw SdkError(code: "INVALID_CONFIGURATION", message: "Project ID is required")
         }
+        CommunicationAssociationScope.publish(nil)
         let client = try NotificationDev(config: config)
         shared = client
         let task = Task { try await client.perform("start") }
         client.initialization = task
         do {
             try await task.value
+            client.observeCommunicationScope()
             client.installLifecycle()
             await client.foreground()
 
@@ -130,6 +136,23 @@ public final class NotificationDev {
 
     public var states: AsyncStream<SdkState> { stream("state", SdkState.self) }
 
+    private func observeCommunicationScope() {
+        communicationScopeTask?.cancel()
+        publishCommunicationScope()
+        let updates = states
+        communicationScopeTask = Task { [weak self] in
+            for await _ in updates {
+                guard let self else { break }
+                self.publishCommunicationScope()
+            }
+        }
+    }
+
+    private func publishCommunicationScope() {
+        let current = state
+        CommunicationAssociationScope.publish(communicationIdentityTransition || current.identityChangePending ? nil : current.associationId)
+    }
+
     public var pendingOpens: AsyncStream<[NotificationOpen]> {
         stream("opens", [NotificationOpen].self)
     }
@@ -152,11 +175,19 @@ public final class NotificationDev {
 
     public func getEmail() -> EmailSubscription? { state.user.email }
     public func login(_ externalId: String) async throws {
+        communicationIdentityTransition = true
+        defer { communicationIdentityTransition = false; publishCommunicationScope() }
+        CommunicationAssociationScope.publish(nil)
+        if let association = state.associationId { CommunicationEnrichment.clear(associationId: association) }
         foregroundSuppression = nil
         try await perform("login", ["externalId": .string(externalId)])
     }
 
     public func logout() async throws {
+        communicationIdentityTransition = true
+        defer { communicationIdentityTransition = false; publishCommunicationScope() }
+        CommunicationAssociationScope.publish(nil)
+        if let association = state.associationId { CommunicationEnrichment.clear(associationId: association) }
         foregroundSuppression = nil
         try await perform("logout")
     }

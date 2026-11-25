@@ -325,3 +325,20 @@ proof that an `opened` operation succeeded: check its individual result.
 Diagnostics are live events. SDK 0.2.0 has no retrospective diagnostics export;
 an installed build needs existing instrumentation or a compatible app update
 to capture new evidence. Backend deployment does not update native SDKs.
+
+## Communication sender avatars (unreleased)
+
+A sender avatar replacing the leading app icon requires a genuine communication
+notification, not a normal image attachment. The prepared SDK supports
+`communication.sender.{id,name,avatarUrl}` and `communication.conversationId`.
+Enable Communication Notifications and `NSUserActivityTypes = [INSendMessageIntent]`
+in the host, enable the same App Group entitlement and
+`NotificationDevCommunicationAppGroup` Info.plist value in the host and NSE,
+embed the SDK Notification Service Extension, and use the SDK's
+notification delegate forwarder for foreground delivery. App signing/capabilities
+and a native rebuild are required. This is not available in native 0.3.1; wait for
+new public native/wrapper artifacts and physical-device verification.
+
+See the [release and native setup gate](https://github.com/TheBoldApps/notification.dev-SDKs/blob/main/docs/releases/communication-notifications.md)
+for account scoping, fallback behavior and end-to-end attribution checks. Do not
+use communication intents for promotional offers; those use `imageUrl` thumbnails.

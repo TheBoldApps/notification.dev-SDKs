@@ -47,11 +47,34 @@ void main() {
     expect(() => payload.data['new'] = true, throwsUnsupportedError);
   });
 
+  test('communication metadata survives native bridge decoding', () {
+    final payload = NotificationPayload.fromJson({
+      ...legacy,
+      'communication': {
+        'sender': {
+          'id': 'sender-1',
+          'name': 'Anna',
+          'avatarUrl': 'https://example.com/avatar.jpg',
+        },
+        'conversationId': 'chat-1',
+      },
+    });
+    expect(payload.communication!.sender.id, 'sender-1');
+    expect(payload.communication!.sender.name, 'Anna');
+    expect(
+      payload.communication!.sender.avatarUrl,
+      'https://example.com/avatar.jpg',
+    );
+    expect(payload.communication!.conversationId, 'chat-1');
+    expect(payload.deliveryId, 'delivery');
+    expect(NotificationPayload.fromJson(legacy).communication, isNull);
+  });
+
   test('APNs environment is optional native startup configuration', () {
     expect(
-      const SdkConfig(
-        projectId: 'p',
-      ).toJson().containsKey('iosApnsEnvironment'),
+      const SdkConfig(projectId: 'p')
+          .toJson()
+          .containsKey('iosApnsEnvironment'),
       isFalse,
     );
     expect(

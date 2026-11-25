@@ -49,6 +49,7 @@ export interface NotificationPayload {
   ios?: IosNotificationOptions | null;
   android?: AndroidNotificationOptions | null;
   imageUrl?: string | null;
+  communication?: { sender: { id: string; name: string; avatarUrl?: string | null }; conversationId: string } | null;
   contentAvailable?: boolean | null;
 }
 export interface NotificationOpen {

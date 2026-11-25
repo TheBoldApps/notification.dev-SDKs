@@ -11,8 +11,14 @@ function nativeConfiguration(options = {}) {
   if (url.username || url.password || url.search || url.hash || !['https:', 'http:'].includes(url.protocol) || (url.protocol === 'http:' && options.allowHttp !== true)) {
     throw new Error('notification.dev: use HTTPS, or explicitly enable allowHttp for an HTTP API URL');
   }
-  for (const key of ['allowHttp', 'displayInForeground', 'loggingEnabled', 'iosLiveActivities']) {
+  for (const key of ['allowHttp', 'displayInForeground', 'loggingEnabled', 'iosLiveActivities', 'iosCommunicationNotifications']) {
     if (options[key] !== undefined && typeof options[key] !== 'boolean') throw new Error(`notification.dev: ${key} must be a boolean`);
+  }
+  if (options.iosCommunicationAppGroup !== undefined && (typeof options.iosCommunicationAppGroup !== 'string' || !/^group\.[A-Za-z0-9][A-Za-z0-9.-]{0,248}$/.test(options.iosCommunicationAppGroup))) {
+    throw new Error('notification.dev: iosCommunicationAppGroup must be a valid group.* App Group identifier');
+  }
+  if (options.iosCommunicationNotifications === true && !options.iosCommunicationAppGroup) {
+    throw new Error('notification.dev: communication notifications require iosCommunicationAppGroup for account-safe extension processing');
   }
   for (const key of ['androidChannelId', 'androidChannelName']) {
     if (options[key] !== undefined && (typeof options[key] !== 'string' || !options[key].trim())) throw new Error(`notification.dev: ${key} must be a nonempty string`);
@@ -106,6 +112,12 @@ function withNotificationDev(config, options = {}) {
   config = withInfoPlist(config, config => {
     config.modResults.NotificationDev = native;
     if (options.iosLiveActivities === true) config.modResults.NSSupportsLiveActivities = true;
+    if (options.iosCommunicationNotifications === true) {
+      config.modResults.NotificationDevCommunicationAppGroup = options.iosCommunicationAppGroup;
+      const types = config.modResults.NSUserActivityTypes ?? [];
+      if (!Array.isArray(types) || types.some(type => typeof type !== 'string')) throw new Error('notification.dev: NSUserActivityTypes must be an array of strings');
+      config.modResults.NSUserActivityTypes = [...new Set([...types, 'INSendMessageIntent'])];
+    }
     if (native.allowHttp) {
       config.modResults.NSAppTransportSecurity = { ...config.modResults.NSAppTransportSecurity, NSAllowsArbitraryLoads: true };
     }
@@ -113,6 +125,12 @@ function withNotificationDev(config, options = {}) {
   });
   config = withEntitlementsPlist(config, config => {
     config.modResults['aps-environment'] ??= 'development';
+    if (options.iosCommunicationNotifications === true) {
+      config.modResults['com.apple.developer.usernotifications.communication'] = true;
+      const groups = config.modResults['com.apple.security.application-groups'] ?? [];
+      if (!Array.isArray(groups) || groups.some(group => typeof group !== 'string')) throw new Error('notification.dev: App Groups entitlement must be an array of strings');
+      config.modResults['com.apple.security.application-groups'] = [...new Set([...groups, options.iosCommunicationAppGroup])];
+    }
     return config;
   });
   return withPodfile(config, config => {

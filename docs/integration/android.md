@@ -234,3 +234,71 @@ proof that an `opened` operation succeeded: check its individual result.
 Diagnostics are live events. SDK 0.2.0 has no retrospective diagnostics export;
 an installed build needs existing instrumentation or a compatible app update
 to capture new evidence. Backend deployment does not update native SDKs.
+
+## Direct-message sender avatars (unreleased)
+
+A genuine person-to-person message can include this optional metadata alongside
+its existing title/body and delivery identifiers:
+
+```json
+{
+  "communication": {
+    "sender": {
+      "id": "person-123",
+      "name": "Anna",
+      "avatarUrl": "https://example.com/anna.jpg"
+    },
+    "conversationId": "conversation-456"
+  }
+}
+```
+
+The updated native SDK uses `MessagingStyle` and `Person`, so the sender's avatar
+and name identify the incoming message. IDs/names must be nonblank and at most
+255 characters; use a stable opaque sender ID and conversation ID. The current
+recipient is inferred by the app; no recipient identity or contact permission
+needs to be supplied. Conversation grouping is scoped to the active installation
+association. Actual presentation depends on Android version and settings.
+
+Use this mode only for real direct communication, not promotional offers.
+Ordinary offers retain the `imageUrl` attachment path. In communication mode,
+Android displays the sender avatar and text rather than a separate BigPicture
+attachment. Do not combine `communication` with `imageUrl`; the sending API
+rejects that combination. The original `title` remains in the payload for fallback
+and event routing; MessagingStyle uses the sender name as its heading. The configured app/status icon and
+signed tap payload are preserved. Download failure leaves a text message with
+the sender name. Avatars use direct HTTP(S) URLs without credentials or redirects,
+JPEG/PNG/GIF, up to 2 MiB and 2048 px per side, with a five-second download budget.
+Use HTTPS for production.
+
+This feature is not in the published native 0.3.1 tag. It requires a new native
+release, updated Flutter/Expo dependency pins and a new app build. Standard
+notification permissions/channels still apply. For Android's full conversation
+layout, configure a chat destination/deep link handled by the app's own intent
+filter. The SDK registers an association-scoped long-lived conversation shortcut
+and attaches its ID to the notification. If launcher slots are full, the SDK
+reuses only its least-recently changed dynamic slot, retaining that conversation's
+cached/long-lived and pinned state. Host-app shortcuts are never evicted; rate
+limits or host-owned capacity fall back to ordinary MessagingStyle.
+Shortcut launches open that conversation
+without a delivery payload or an `opened` analytics operation; actual notification
+taps retain the original signed delivery intent. Missing/unsafe/unhandled links,
+shortcut quota or rate limiting safely retain MessagingStyle without a shortcut.
+The SDK does not evict unrelated host-app shortcuts. Identity changes clear only
+SDK-owned shortcuts; user-pinned entries are sanitized and disabled because apps
+cannot unpin them. This does not provision chat bubbles or a reply-composition backend.
+Before enabling it, verify foreground/background/terminated cases on physical
+devices and trace the same delivery ID from the tap to API acceptance and the
+correct campaign/Journey counters. Do not infer tap acceptance from navigation.
+
+SDK-owned shortcuts use a dedicated prefix and association-scoped opaque IDs.
+Logout, identity changes and credential revocation remove their dynamic and
+cached entries through an identity-only cleanup hook. Push opt-out clears visible
+notifications while preserving same-account conversation destinations and user
+preferences. User-pinned entries cannot
+be unpinned by an app: their personal label/avatar and chat destination are
+replaced with generic app content and the entries are disabled. Unrelated
+host-app shortcuts are not changed. Shortcut launches route to the conversation
+without a delivery payload; they must not be counted as a tap on a particular
+notification. Actual notification taps retain their signed delivery-specific
+PendingIntent.

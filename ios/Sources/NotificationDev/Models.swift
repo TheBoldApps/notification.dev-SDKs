@@ -1,3 +1,4 @@
+import NotificationDevCommunication
 import Foundation
 @_exported import NotificationDevActivityKit
 
@@ -107,8 +108,31 @@ public struct NotificationPayload: Codable, Equatable, Sendable {
     public let priority: String?
     public let ios: IosNotificationOptions?
     public let android: AndroidNotificationOptions?
+    public let communication: CommunicationMessage?
     public let imageUrl: String?
     public let contentAvailable: Bool?
+    enum CodingKeys: String, CodingKey { case version, deliveryId, associationId, expiresAt, title, body, data, deepLink, collapseId, threadId, ttlSeconds, priority, ios, android, communication, imageUrl, contentAvailable }
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        version = try values.decode(Int.self, forKey: .version)
+        deliveryId = try values.decode(String.self, forKey: .deliveryId)
+        associationId = try values.decode(String.self, forKey: .associationId)
+        expiresAt = try values.decode(Int64.self, forKey: .expiresAt)
+        title = try values.decode(String.self, forKey: .title)
+        body = try values.decode(String.self, forKey: .body)
+        data = try values.decode([String: JSONValue].self, forKey: .data)
+        deepLink = try values.decodeIfPresent(String.self, forKey: .deepLink)
+        collapseId = try values.decodeIfPresent(String.self, forKey: .collapseId)
+        threadId = try values.decodeIfPresent(String.self, forKey: .threadId)
+        ttlSeconds = try values.decodeIfPresent(Int.self, forKey: .ttlSeconds)
+        priority = try values.decodeIfPresent(String.self, forKey: .priority)
+        ios = try values.decodeIfPresent(IosNotificationOptions.self, forKey: .ios)
+        android = try values.decodeIfPresent(AndroidNotificationOptions.self, forKey: .android)
+        communication = try? values.decode(CommunicationMessage.self, forKey: .communication)
+        imageUrl = try values.decodeIfPresent(String.self, forKey: .imageUrl)
+        contentAvailable = try values.decodeIfPresent(Bool.self, forKey: .contentAvailable)
+    }
+
 }
 
 public struct NotificationEvent: Codable, Equatable, Sendable {

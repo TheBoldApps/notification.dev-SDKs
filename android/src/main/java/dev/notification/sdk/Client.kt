@@ -44,6 +44,7 @@ internal class Client(val app: Application, val config: SdkConfig) : DefaultLife
     val presenter = NotificationPresenter(app, config, engine::encodeNotification) { diagnosticEvents.tryEmit(it) }
 
     init {
+        engine.setIdentityArtifactCleanup(presenter::clearConversationShortcuts)
         presenter.createChannel()
         scope.launch {
             engine.start()

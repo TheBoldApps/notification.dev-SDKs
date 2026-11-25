@@ -1,5 +1,7 @@
 package dev.notification.sdk
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -35,13 +37,32 @@ class CoreClient internal constructor(
         wake, schedule, diagnostic, SdkLogger(config.loggingEnabled, log), clearNotifications, metadata
     )
 
+    // Always acquire this before the engine mutex. Platform presentation/cleanup
+    // callbacks are synchronous; state reads and nonblocking diagnostic emission
+    // do not acquire this gate. Never launch deferred publication from a callback.
+    private val presentation = Mutex()
+    private var identityArtifactCleanup: () -> Unit = {}
+
+    /** Native integration hook. Configure once before start; callbacks must be nonblocking. */
+    fun setIdentityArtifactCleanup(cleanup: () -> Unit) {
+        identityArtifactCleanup = cleanup
+    }
+
+    private fun clearIdentityPresentation() {
+        try {
+            clearNotifications()
+        } finally {
+            identityArtifactCleanup()
+        }
+    }
+
     private val engine = Engine(object : StateStore {
         override suspend fun load(): StoredState? = storage.load()?.let(::decodeStoredState)
 
         override suspend fun save(state: StoredState) = storage.save(wireJson.encodeToString(state))
     }, transport, wake = wake, configurationId = "${config.projectId}|${config.baseUrl.trimEnd('/')}",
         diagnostic = {
-            if (it.code == "UNAUTHENTICATED" || it.code == "HTTP_401") clearNotifications()
+            if (it.code == "UNAUTHENTICATED" || it.code == "HTTP_401") clearIdentityPresentation()
             diagnostic(it)
         }, logger = logger)
     private val coordinator = SyncCoordinator(engine, schedule, diagnostic = diagnostic)
@@ -71,21 +92,21 @@ class CoreClient internal constructor(
 
     suspend fun refresh(): SdkState = engine.refresh()
 
-    suspend fun login(externalId: String) {
+    suspend fun login(externalId: String) = presentation.withLock {
         val before = state.value.associationId
         engine.login(externalId)
 
         if (before != state.value.associationId) {
-            clearNotifications()
+            clearIdentityPresentation()
         }
     }
 
-    suspend fun logout() {
+    suspend fun logout() = presentation.withLock {
         engine.logout()
-        clearNotifications()
+        clearIdentityPresentation()
     }
 
-    suspend fun setPushOptedIn(enabled: Boolean) {
+    suspend fun setPushOptedIn(enabled: Boolean) = presentation.withLock {
         engine.setPushOptedIn(enabled)
 
         if (!enabled) {
@@ -160,7 +181,16 @@ class CoreClient internal constructor(
     }
 
     fun decodeNotification(json: String): NotificationPayload? = runCatching {
-        wireJson.decodeFromString<NotificationPayload>(json).takeIf { it.title.length <= 1024 && it.body.length <= 4096 }
+        val fields = wireJson.parseToJsonElement(json).jsonObject
+        val communication = fields["communication"]?.let { value ->
+            runCatching { wireJson.decodeFromJsonElement<CommunicationNotification>(value) }.getOrNull()
+                ?.takeIf { it.isValid() }
+        }
+        // Optional presentation metadata must not discard an otherwise valid delivery.
+        val normalized = JsonObject(fields.filterKeys { it != "communication" } +
+            if (communication == null) emptyMap() else mapOf("communication" to wireJson.encodeToJsonElement(communication)))
+        wireJson.decodeFromJsonElement<NotificationPayload>(normalized)
+            .takeIf { it.title.length <= 1024 && it.body.length <= 4096 }
     }.getOrNull()
 
     suspend fun receive(payload: NotificationPayload): Boolean {
@@ -177,7 +207,9 @@ class CoreClient internal constructor(
 
     suspend fun acknowledgeOpen(id: String) = engine.acknowledgeOpen(id)
 
-    suspend fun displayIfEligible(payload: NotificationPayload, display: () -> Unit) = engine.displayIfEligible(payload, display)
+    suspend fun displayIfEligible(payload: NotificationPayload, display: () -> Unit) = presentation.withLock {
+        engine.displayIfEligible(payload, display)
+    }
 
     fun encodeNotification(payload: NotificationPayload): String = wireJson.encodeToString(payload)
 
